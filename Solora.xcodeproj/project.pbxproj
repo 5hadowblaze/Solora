@@ -1,0 +1,548 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		13E94F334F62BEFE8A920435 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 84419F3B1BB8040BB8528AC7 /* FirebaseFirestore */; };
+		261FF9254D5F1109DF58E0A9 /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA8B6D374E99AA4FBEA23FF4 /* DemoFixtures.swift */; };
+		2D915F7DB9507633AE6E3810 /* WorldKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBDABE84210833189CE7553 /* WorldKind.swift */; };
+		472C7D084CE2661936E9CB3B /* WorldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC42E62749D6DECDB78E8C6 /* WorldView.swift */; };
+		50865C846221C7A9ADBBDD60 /* ArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DE87453DBD6D36FD2892EC /* ArchiveView.swift */; };
+		5D45A6FC30D6CF297ED73188 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D1ED9F4F16A68322BBAFCE57 /* FirebaseAuth */; };
+		66DE158895AEDB88F84610F8 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F249FDB20658CBA8F5A35A9 /* TodayView.swift */; };
+		6E59F16FBD2F8B622B9438E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D1F36702C9085B30F87666D7 /* Assets.xcassets */; };
+		71CCAF0A00478E282C253842 /* YouView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D24C661086A2FD99CAEB673 /* YouView.swift */; };
+		7AFD4A894D0BBF59B34267DF /* SoloraTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */; };
+		A808D9B28D39F61A613F44E7 /* SoloraMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */; };
+		AD5B436B5BF645C31918D690 /* SoloraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9A0CB26EAE77BC906C7B5D /* SoloraApp.swift */; };
+		B42AF07FCD2CB8F93370B8ED /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BD6038040C6F06468E8CF0 /* AppContainer.swift */; };
+		BD0A5A5C1933A5448283AD0B /* WorldManifest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC7375825FA532AC8CF6D2E4 /* WorldManifest.swift */; };
+		C11C928B3D22B2171DD95DD8 /* SoloraMomentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */; };
+		C3015A57471B3149A1DB4129 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */; };
+		CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */; };
+		E230C788A5A1CE6501B78A77 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = C0126FCB76E45A11F248BF6E /* FirebaseCore */; };
+		F2758B84D220ECCAC3130418 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A7498CE393EABC550BBD3558 /* FirebaseFunctions */; };
+		F2B04A30F4B0519E286A9536 /* CreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F935C77084A31476F0C5C29 /* CreateView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BEB82ED0994DC963DCDF62A5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1494C63A2ED70B099B894D69 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 156D287BD8B6153440704BBD;
+			remoteInfo = Solora;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1F249FDB20658CBA8F5A35A9 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		2D24C661086A2FD99CAEB673 /* YouView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YouView.swift; sourceTree = "<group>"; };
+		33E2843C825EE6E6E2FF4FE8 /* SoloraTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SoloraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F935C77084A31476F0C5C29 /* CreateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateView.swift; sourceTree = "<group>"; };
+		48DE87453DBD6D36FD2892EC /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
+		5B9A0CB26EAE77BC906C7B5D /* SoloraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraApp.swift; sourceTree = "<group>"; };
+		60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraTheme.swift; sourceTree = "<group>"; };
+		A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraOrbView.swift; sourceTree = "<group>"; };
+		AEBDABE84210833189CE7553 /* WorldKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldKind.swift; sourceTree = "<group>"; };
+		AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMomentTests.swift; sourceTree = "<group>"; };
+		BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMoment.swift; sourceTree = "<group>"; };
+		BA8B6D374E99AA4FBEA23FF4 /* DemoFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixtures.swift; sourceTree = "<group>"; };
+		CC7375825FA532AC8CF6D2E4 /* WorldManifest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldManifest.swift; sourceTree = "<group>"; };
+		D1F36702C9085B30F87666D7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D69C8F781E7E22B97E3F1B0F /* Solora.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Solora.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E4BD6038040C6F06468E8CF0 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		FAC42E62749D6DECDB78E8C6 /* WorldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		8A3EA7313717E85D184E0F2C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E230C788A5A1CE6501B78A77 /* FirebaseCore in Frameworks */,
+				5D45A6FC30D6CF297ED73188 /* FirebaseAuth in Frameworks */,
+				13E94F334F62BEFE8A920435 /* FirebaseFirestore in Frameworks */,
+				F2758B84D220ECCAC3130418 /* FirebaseFunctions in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3FDD5B52A627313CBFE4F97F /* SoloraTests */ = {
+			isa = PBXGroup;
+			children = (
+				AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */,
+			);
+			path = SoloraTests;
+			sourceTree = "<group>";
+		};
+		467F26D3274DD3106BF830EC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D69C8F781E7E22B97E3F1B0F /* Solora.app */,
+				33E2843C825EE6E6E2FF4FE8 /* SoloraTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4C70E675518C40910016B8AE /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				48DE87453DBD6D36FD2892EC /* ArchiveView.swift */,
+				3F935C77084A31476F0C5C29 /* CreateView.swift */,
+				60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */,
+				1F249FDB20658CBA8F5A35A9 /* TodayView.swift */,
+				FAC42E62749D6DECDB78E8C6 /* WorldView.swift */,
+				2D24C661086A2FD99CAEB673 /* YouView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		5374380FA083015450A74101 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				5B9A0CB26EAE77BC906C7B5D /* SoloraApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B235E305AD8097E8A2E9E0DD = {
+			isa = PBXGroup;
+			children = (
+				E8E4AB5BA08217FE4EE32C4B /* Solora */,
+				3FDD5B52A627313CBFE4F97F /* SoloraTests */,
+				467F26D3274DD3106BF830EC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C6A9AA62D941AB8EFF9B3C64 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */,
+				71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		E8E4AB5BA08217FE4EE32C4B /* Solora */ = {
+			isa = PBXGroup;
+			children = (
+				D1F36702C9085B30F87666D7 /* Assets.xcassets */,
+				5374380FA083015450A74101 /* App */,
+				C6A9AA62D941AB8EFF9B3C64 /* Design */,
+				F074DF207B07959ACED83ACD /* Domain */,
+				4C70E675518C40910016B8AE /* Views */,
+			);
+			path = Solora;
+			sourceTree = "<group>";
+		};
+		F074DF207B07959ACED83ACD /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				E4BD6038040C6F06468E8CF0 /* AppContainer.swift */,
+				BA8B6D374E99AA4FBEA23FF4 /* DemoFixtures.swift */,
+				BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */,
+				AEBDABE84210833189CE7553 /* WorldKind.swift */,
+				CC7375825FA532AC8CF6D2E4 /* WorldManifest.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		156D287BD8B6153440704BBD /* Solora */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EC65842A1064FE18BCBE688A /* Build configuration list for PBXNativeTarget "Solora" */;
+			buildPhases = (
+				A591F00E55F057BE7579FE4C /* Sources */,
+				C27BB109E142F71E93537D29 /* Resources */,
+				8A3EA7313717E85D184E0F2C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Solora;
+			packageProductDependencies = (
+				C0126FCB76E45A11F248BF6E /* FirebaseCore */,
+				D1ED9F4F16A68322BBAFCE57 /* FirebaseAuth */,
+				84419F3B1BB8040BB8528AC7 /* FirebaseFirestore */,
+				A7498CE393EABC550BBD3558 /* FirebaseFunctions */,
+			);
+			productName = Solora;
+			productReference = D69C8F781E7E22B97E3F1B0F /* Solora.app */;
+			productType = "com.apple.product-type.application";
+		};
+		329C028FDDEA8E4B42BD5E57 /* SoloraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D2708248636FE8D54D429B8D /* Build configuration list for PBXNativeTarget "SoloraTests" */;
+			buildPhases = (
+				B9572FF0C4645263A0CF82A3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8221000A91C34BE8E3573588 /* PBXTargetDependency */,
+			);
+			name = SoloraTests;
+			packageProductDependencies = (
+			);
+			productName = SoloraTests;
+			productReference = 33E2843C825EE6E6E2FF4FE8 /* SoloraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1494C63A2ED70B099B894D69 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					156D287BD8B6153440704BBD = {
+						DevelopmentTeam = QYDB6YBZ34;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A5B29670A614F8DBAEAC779C /* Build configuration list for PBXProject "Solora" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B235E305AD8097E8A2E9E0DD;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 467F26D3274DD3106BF830EC /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				156D287BD8B6153440704BBD /* Solora */,
+				329C028FDDEA8E4B42BD5E57 /* SoloraTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C27BB109E142F71E93537D29 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6E59F16FBD2F8B622B9438E9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A591F00E55F057BE7579FE4C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B42AF07FCD2CB8F93370B8ED /* AppContainer.swift in Sources */,
+				50865C846221C7A9ADBBDD60 /* ArchiveView.swift in Sources */,
+				F2B04A30F4B0519E286A9536 /* CreateView.swift in Sources */,
+				261FF9254D5F1109DF58E0A9 /* DemoFixtures.swift in Sources */,
+				C3015A57471B3149A1DB4129 /* RootTabView.swift in Sources */,
+				AD5B436B5BF645C31918D690 /* SoloraApp.swift in Sources */,
+				A808D9B28D39F61A613F44E7 /* SoloraMoment.swift in Sources */,
+				CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */,
+				7AFD4A894D0BBF59B34267DF /* SoloraTheme.swift in Sources */,
+				66DE158895AEDB88F84610F8 /* TodayView.swift in Sources */,
+				2D915F7DB9507633AE6E3810 /* WorldKind.swift in Sources */,
+				BD0A5A5C1933A5448283AD0B /* WorldManifest.swift in Sources */,
+				472C7D084CE2661936E9CB3B /* WorldView.swift in Sources */,
+				71CCAF0A00478E282C253842 /* YouView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B9572FF0C4645263A0CF82A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C11C928B3D22B2171DD95DD8 /* SoloraMomentTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8221000A91C34BE8E3573588 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 156D287BD8B6153440704BBD /* Solora */;
+			targetProxy = BEB82ED0994DC963DCDF62A5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		234A01868A923321D5CFD613 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QYDB6YBZ34;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		259069284DE7942595276B39 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = QYDB6YBZ34;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5184235C274A40B42698230A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Solora.app/Solora";
+			};
+			name = Release;
+		};
+		799BF91943DE62F0BD40FA64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amirdzakwan.solora;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		BAAF85E6C017E7732D669B99 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Solora.app/Solora";
+			};
+			name = Debug;
+		};
+		E519191D011F3CABD15B4662 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.amirdzakwan.solora;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A5B29670A614F8DBAEAC779C /* Build configuration list for PBXProject "Solora" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				799BF91943DE62F0BD40FA64 /* Debug */,
+				E519191D011F3CABD15B4662 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D2708248636FE8D54D429B8D /* Build configuration list for PBXNativeTarget "SoloraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BAAF85E6C017E7732D669B99 /* Debug */,
+				5184235C274A40B42698230A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EC65842A1064FE18BCBE688A /* Build configuration list for PBXNativeTarget "Solora" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				234A01868A923321D5CFD613 /* Debug */,
+				259069284DE7942595276B39 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = exactVersion;
+				version = 12.16.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		84419F3B1BB8040BB8528AC7 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		A7498CE393EABC550BBD3558 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		C0126FCB76E45A11F248BF6E /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		D1ED9F4F16A68322BBAFCE57 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1494C63A2ED70B099B894D69 /* Project object */;
+}

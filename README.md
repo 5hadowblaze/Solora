@@ -6,9 +6,9 @@ Solora is a private personal-world platform that turns everyday career experienc
 
 ## Current status
 
-Product design and foundation planning are complete. iOS project scaffolding is in progress; `project.yml` and `Solora.xcodeproj` are not yet available in this baseline.
+The native iOS foundation is available. It includes the SwiftUI tab shell, deterministic demo content, Firebase package references, and focused unit tests.
 
-## Local development after scaffolding
+## Local development
 
 Prerequisites:
 
@@ -20,6 +20,12 @@ Generate and open the project:
 ```sh
 xcodegen generate
 open Solora.xcodeproj
+```
+
+Run the unit tests with an available iOS Simulator:
+
+```sh
+xcodebuild test -project Solora.xcodeproj -scheme Solora -destination 'platform=iOS Simulator,id=27D75B38-EF67-4A19-A9CC-6BB0B90FAB85'
 ```
 
 ## Security
