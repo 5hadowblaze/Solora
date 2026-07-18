@@ -10,7 +10,8 @@ struct RootTabView: View {
     let authenticatedUser: AuthenticatedUser
     let signOut: () -> Void
     @StateObject private var momentStore: MomentStore
-    @State private var selection: RootTab
+    @StateObject private var assistantStore: SoloraAssistantStore
+    @State private var selection: SoloraAppSurface
 
     init(
         container: AppContainer,
@@ -28,14 +29,19 @@ struct RootTabView: View {
             userID: authenticatedUser.id,
             demoMoments: container.moments
         ))
-        _selection = State(initialValue: RootTab.launchSelection)
+        _assistantStore = StateObject(wrappedValue: SoloraAssistantStore())
+        _selection = State(initialValue: SoloraAppSurface.launchSelection)
     }
 
     var body: some View {
         TabView(selection: $selection) {
-            TodayView(moments: momentStore.moments, onSave: saveReflection)
+            TodayView(
+                moments: momentStore.moments,
+                assistantStore: assistantStore,
+                onSave: saveReflection
+            )
                 .tabItem { Label("Now", systemImage: "circle.fill") }
-                .tag(RootTab.now)
+                .tag(SoloraAppSurface.now)
 
             WorldView(
                 manifest: container.worldManifest,
@@ -44,11 +50,11 @@ struct RootTabView: View {
                 visualReference: visualReference
             )
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
-            .tag(RootTab.lore)
+            .tag(SoloraAppSurface.lore)
 
-            CreateView(moments: momentStore.moments)
+            CreateView(moments: momentStore.moments, assistantStore: assistantStore)
                 .tabItem { Label("Share", systemImage: "wand.and.rays") }
-                .tag(RootTab.share)
+                .tag(SoloraAppSurface.share)
 
             YouView(
                 vibe: vibe,
@@ -57,11 +63,46 @@ struct RootTabView: View {
                 signOut: signOut
             )
                 .tabItem { Label("You", systemImage: "person.fill") }
-                .tag(RootTab.you)
+                .tag(SoloraAppSurface.you)
         }
         .tint(SoloraTheme.coral)
+        .overlay(alignment: .bottomTrailing) {
+            if assistantStore.canShowRootBubble {
+                SoloraAssistantBubble(store: assistantStore)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 70)
+                    .transition(reduceMotion ? .opacity : .soloraReveal)
+            }
+        }
+        .animation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive, value: assistantStore.canShowRootBubble)
         .task(id: authenticatedUser.id) {
             momentStore.start()
+        }
+        .onChange(of: momentStore.moments, initial: true) { _, moments in
+            assistantStore.replaceMemories(moments)
+        }
+        .onChange(of: selection, initial: true) { _, surface in
+            assistantStore.setActiveSurface(surface)
+        }
+        .onChange(of: assistantStore.requestedSurface) { _, requestedSurface in
+            guard let requestedSurface else { return }
+            selection = requestedSurface
+            assistantStore.consumeNavigationRequest()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            assistantStore.setKeyboardVisible(true)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            assistantStore.setKeyboardVisible(false)
+        }
+        .sheet(isPresented: Binding(
+            get: { assistantStore.isPanelPresented },
+            set: { assistantStore.isPanelPresented = $0 }
+        )) {
+            SoloraAssistantPanel(
+                store: assistantStore,
+                confirmMemoryChange: confirmAssistantMemoryChange
+            )
         }
         .alert("Couldn't sync your lore", isPresented: Binding(
             get: { momentStore.errorMessage != nil },
@@ -73,11 +114,79 @@ struct RootTabView: View {
         }
     }
 
-    private func saveReflection(_ reflection: String) -> Bool {
-        let moment = DemoFixtures.postEventReflection(
-            id: UUID().uuidString,
+    private func confirmAssistantMemoryChange(_ pending: SoloraAssistantPendingMemoryChange) -> Bool {
+        let existing: SoloraMoment?
+        let identifier: String
+        switch pending.change {
+        case .create:
+            existing = nil
+            identifier = UUID().uuidString
+        case .update(let memoryID):
+            existing = momentStore.moments.first { $0.id == memoryID }
+            guard existing != nil else { return false }
+            identifier = memoryID
+        }
+
+        let moment = SoloraMoment(
+            id: identifier,
+            title: pending.draft.title,
+            summary: pending.draft.summary,
+            date: pending.draft.occurredAt,
+            world: existing?.world ?? .memoryShelves,
+            category: pending.draft.category ?? existing?.category,
+            stickerPath: existing?.stickerPath,
+            photoPaths: existing?.photoPaths ?? []
+        )
+
+        var didSave = false
+        withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
+            didSave = momentStore.save(moment)
+        }
+        if didSave {
+            UIAccessibility.post(notification: .announcement, argument: "Confirmed memory saved to your lore")
+        }
+        return didSave
+    }
+
+    @MainActor
+    private func saveReflection(
+        _ reflection: String,
+        photoData: Data?,
+        onProgress: @escaping @MainActor (Double) -> Void
+    ) async -> Bool {
+        let identifier = UUID().uuidString
+        var photoPaths: [String] = []
+
+        if let photoData {
+            do {
+                let path = try await FirebaseMomentMediaRepository.uploadPhoto(
+                    photoData,
+                    userID: authenticatedUser.id,
+                    momentID: identifier,
+                    onProgress: onProgress
+                )
+                photoPaths = [path]
+            } catch {
+                momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
+                    ?? "The photo could not be uploaded. Please try again."
+                return false
+            }
+        }
+
+        let fixture = DemoFixtures.postEventReflection(
+            id: identifier,
             date: .now,
             reflection: reflection
+        )
+        let moment = SoloraMoment(
+            id: fixture.id,
+            title: fixture.title,
+            summary: fixture.summary,
+            date: fixture.date,
+            world: fixture.world,
+            category: fixture.category,
+            stickerPath: fixture.stickerPath,
+            photoPaths: photoPaths
         )
         var didSave = false
         withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
@@ -89,9 +198,7 @@ struct RootTabView: View {
     }
 }
 
-private enum RootTab: String {
-    case now, lore, share, you
-
+private extension SoloraAppSurface {
     static var launchSelection: Self {
         let arguments = ProcessInfo.processInfo.arguments
         guard let flagIndex = arguments.firstIndex(of: "-demoTab"),

@@ -200,7 +200,7 @@ struct SoloraOnboardingSourceCard: View {
                     Image(systemName: isIncluded ? "checkmark.circle.fill" : "plus.circle")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(isIncluded ? SoloraTheme.moss : SoloraTheme.ink.opacity(0.32))
-                    Text(isIncluded ? "Connected" : (source == .chatGPT ? "Optional" : "Connect"))
+                    Text(isIncluded ? (source == .chatGPT ? "Imported" : "Included") : (source == .chatGPT ? "Optional" : "Add"))
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(SoloraTheme.ink.opacity(0.44))
                 }
@@ -215,8 +215,8 @@ struct SoloraOnboardingSourceCard: View {
             .soloraHairline(isIncluded ? source.tint.opacity(0.46) : SoloraTheme.ink.opacity(0.08), radius: 18)
         }
         .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-        .accessibilityLabel("\(source.title), \(isIncluded ? "connected" : "not connected")")
-        .accessibilityHint(source == .chatGPT ? "Shows ChatGPT import information" : "Connects or disconnects this source")
+        .accessibilityLabel("\(source.title), \(isIncluded ? "included" : "not included")")
+        .accessibilityHint(source == .chatGPT ? "Opens the manual ChatGPT handoff" : "Includes or removes this source preference")
     }
 }
 
@@ -294,80 +294,5 @@ struct SoloraOnboardingWorldCard: View {
         }
         .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.98))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-struct ChatGPTMemoryImportSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let onUseSample: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
-                    HStack {
-                        SoloraOnboardingGlassOrb(size: 72, color: SoloraTheme.lavender, isAlive: true, showsHalo: true)
-                        Spacer()
-                    }
-                    .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Bring in themes from ChatGPT")
-                            .font(.system(size: 31, weight: .black, design: .rounded))
-                        Text("Solora can learn from an archive you choose to export and import. It never asks for your ChatGPT password or signs in as you.")
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(SoloraTheme.ink.opacity(0.64))
-                            .lineSpacing(3)
-                    }
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        instruction(1, "Request an export from ChatGPT settings")
-                        instruction(2, "Download the archive when it is ready")
-                        instruction(3, "Choose the export in Solora")
-                    }
-                    .padding(18)
-                    .background(.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .soloraHairline(radius: 20)
-
-                    Label("You choose exactly what Solora can read.", systemImage: "lock.shield.fill")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(SoloraTheme.ink.opacity(0.60))
-                        .padding(16)
-                        .background(SoloraTheme.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                    SoloraOnboardingPrimaryButton(title: "Try a sample export", detail: "Real ZIP import comes in the data-integration pass") {
-                        onUseSample()
-                        dismiss()
-                    }
-                }
-                .padding(20)
-                .padding(.bottom, 20)
-            }
-            .background(SoloraTheme.cream.ignoresSafeArea())
-            .foregroundStyle(SoloraTheme.ink)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Not now") { dismiss() }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(SoloraTheme.coral)
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
-    }
-
-    private func instruction(_ number: Int, _ text: String) -> some View {
-        HStack(spacing: 12) {
-            Text("\(number)")
-                .font(.caption.weight(.black))
-                .foregroundStyle(SoloraTheme.cream)
-                .frame(width: 28, height: 28)
-                .background(SoloraTheme.ink, in: Circle())
-            Text(text)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-        }
     }
 }

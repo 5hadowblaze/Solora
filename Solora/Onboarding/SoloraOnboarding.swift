@@ -8,7 +8,9 @@ struct SoloraOnboarding: View {
     @State private var selectedVibe = "Warm & reflective"
     @State private var selectedVisualReference = "Core room"
     @State private var showsChatGPTImport = false
+    @State private var importedMemoryCount = 0
 
+    let userID: String
     let enter: (String, String) -> Void
 
     var body: some View {
@@ -37,9 +39,10 @@ struct SoloraOnboarding: View {
             bottomAction
         }
         .sheet(isPresented: $showsChatGPTImport) {
-            ChatGPTMemoryImportSheet {
+            ChatGPTMemoryImportSheet(userID: userID) { count in
                 withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
                     _ = includedSources.insert(.chatGPT)
+                    importedMemoryCount += count
                 }
             }
         }
@@ -131,7 +134,7 @@ struct SoloraOnboarding: View {
                 onboardingHeading(
                     eyebrow: "BRING YOUR STORY IN",
                     title: "Start with what already knows you",
-                    detail: "Choose sample sources for this prototype. You can change them later."
+                    detail: "Choose the parts of your working life you want Solora to shape around. You can change these choices later."
                 )
 
                 VStack(spacing: 12) {
@@ -146,7 +149,7 @@ struct SoloraOnboarding: View {
                 }
 
                 Label(
-                    "Sample data stays on this device during the demo. No source account is actually connected.",
+                    "Solora only saves content you deliberately capture or approve.",
                     systemImage: "lock.fill"
                 )
                 .font(.footnote.weight(.semibold))
@@ -237,7 +240,7 @@ struct SoloraOnboarding: View {
                     Text("Your world is ready")
                         .font(.system(size: 38, weight: .black, design: .rounded))
                         .multilineTextAlignment(.center)
-                    Text("\(includedSources.count) sample \(includedSources.count == 1 ? "source" : "sources") became the first pieces of your lore.")
+                    Text(readyDetail)
                         .font(.body.weight(.medium))
                         .foregroundStyle(SoloraTheme.ink.opacity(0.58))
                         .multilineTextAlignment(.center)
@@ -281,7 +284,7 @@ struct SoloraOnboarding: View {
             actionContainer {
                 SoloraOnboardingPrimaryButton(
                     title: "Let Solora learn",
-                    detail: "This demo uses your selected sample sources"
+                    detail: "Using the choices and memories you reviewed"
                 ) {
                     advance(to: .learning)
                 }
@@ -364,13 +367,23 @@ struct SoloraOnboarding: View {
 
     private var sourceButtonDetail: String {
         if includedSources.isEmpty {
-            return "Continue with built-in sample moments"
+            return "You can begin without adding a source"
         }
-        return "\(includedSources.count) sample \(includedSources.count == 1 ? "source" : "sources") included"
+        return "\(includedSources.count) source \(includedSources.count == 1 ? "choice" : "choices") included"
+    }
+
+    private var readyDetail: String {
+        if importedMemoryCount == 1 {
+            return "Your reviewed ChatGPT memory is saved and ready to explore."
+        }
+        if importedMemoryCount > 1 {
+            return "\(importedMemoryCount) reviewed ChatGPT memories are saved and ready to explore."
+        }
+        return "Your choices are set. Capture a useful moment to begin growing your lore."
     }
 
     private func toggle(_ source: SoloraOnboardingSource) {
-        if source == .chatGPT && !includedSources.contains(source) {
+        if source == .chatGPT {
             showsChatGPTImport = true
             return
         }

@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function owns(userId) { return request.auth != null && request.auth.uid == userId; }
+    function validImageUpload() {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|heic|heif|webp)');
+    }
+    match /users/{userId}/wins/{winId}/photos/{fileName} {
+      allow read, delete: if owns(userId);
+      allow create, update: if owns(userId) && validImageUpload();
+    }
+    match /{legacyKind}/{legacyUserId}/{fileName} {
+      allow read: if legacyKind in ['win-photos', 'stickers']
+        && request.auth != null
+        && resource.metadata.soloraOwnerUID == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}

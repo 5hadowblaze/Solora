@@ -143,7 +143,11 @@ struct WorldView: View {
                     openDetail(moment)
                 } label: {
                     HStack(spacing: 13) {
-                        SoloraOrbView(size: 42, color: color(for: moment))
+                        SoloraOrbView(
+                            size: 42,
+                            color: color(for: moment),
+                            mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                        )
                             .accessibilityHidden(true)
 
                         VStack(alignment: .leading, spacing: 2) {
@@ -340,7 +344,8 @@ private struct LoreCanvas: View {
                     size: size,
                     color: color,
                     isAlive: isSelected && !isExpanded,
-                    showsHalo: isSelected
+                    showsHalo: isSelected,
+                    mediaPath: moment.photoPaths.first ?? moment.stickerPath
                 )
                 .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: !isExpanded)
                 .opacity(isExpanded ? 0 : 1)
@@ -497,7 +502,13 @@ private struct MemoryDetail: View {
 
                 HStack {
                     Spacer()
-                    SoloraOrbView(size: 190, color: color, isAlive: true, showsHalo: true)
+                    SoloraOrbView(
+                        size: 190,
+                        color: color,
+                        isAlive: true,
+                        showsHalo: true,
+                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                    )
                         .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: false)
                     Spacer()
                 }

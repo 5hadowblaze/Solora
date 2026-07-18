@@ -7,8 +7,9 @@ struct YouView: View {
     let signOut: () -> Void
 
     @StateObject private var cvStore: CVStore
-    @State private var calendarOn = true
+    @StateObject private var calendarStore: CalendarSourceStore
     @State private var cvOn = true
+    @State private var showsCalendarReview = false
 
     init(
         vibe: String = "Warm & reflective",
@@ -21,6 +22,10 @@ struct YouView: View {
         self.authenticatedUser = authenticatedUser
         self.signOut = signOut
         _cvStore = StateObject(wrappedValue: CVStore(userID: authenticatedUser.id))
+        _calendarStore = StateObject(wrappedValue: CalendarSourceStore(
+            userID: authenticatedUser.id,
+            expectedEmail: authenticatedUser.email
+        ))
     }
 
     var body: some View {
@@ -59,6 +64,10 @@ struct YouView: View {
             .toolbar(.hidden, for: .navigationBar)
             .task(id: authenticatedUser.id) {
                 await cvStore.load()
+                await calendarStore.restoreConnectionState()
+            }
+            .sheet(isPresented: $showsCalendarReview) {
+                CalendarReviewSheet(store: calendarStore)
             }
         }
     }
@@ -113,7 +122,7 @@ struct YouView: View {
             VStack(spacing: 0) {
                 masterCVRow
                 Divider().padding(.leading, 56)
-                sourceRow("Calendar", symbol: "calendar", tint: SoloraTheme.gold, isOn: $calendarOn)
+                calendarRow
             }
             .background(.white.opacity(0.50), in: RoundedRectangle(cornerRadius: 14))
             .soloraHairline(radius: 14)
@@ -152,6 +161,43 @@ struct YouView: View {
         return "Extended CV source"
     }
 
+    private var calendarRow: some View {
+        Button {
+            showsCalendarReview = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(SoloraTheme.gold)
+                    .frame(width: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Google Calendar")
+                        .font(.subheadline.weight(.semibold))
+                    Text(calendarStore.status.label)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(calendarStatusColor)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.24))
+            }
+            .foregroundStyle(SoloraTheme.ink)
+            .padding(.horizontal, 14)
+            .frame(height: 64)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens privacy information and Calendar event review")
+    }
+
+    private var calendarStatusColor: Color {
+        switch calendarStore.status {
+        case .connected: SoloraTheme.moss
+        case .needsAttention: SoloraTheme.coral
+        case .checking, .notConnected: SoloraTheme.ink.opacity(0.46)
+        }
+    }
+
     private var preferenceSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Your Solora")
@@ -174,29 +220,6 @@ struct YouView: View {
         if visualReference.localizedCaseInsensitiveContains("fridge") { return "Career fridge" }
         if visualReference.localizedCaseInsensitiveContains("map") { return "Constellation" }
         return "Core room"
-    }
-
-    private func sourceRow(
-        _ title: String,
-        symbol: String,
-        tint: Color,
-        isOn: Binding<Bool>
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 30)
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            Spacer()
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(SoloraTheme.moss)
-        }
-        .foregroundStyle(SoloraTheme.ink)
-        .padding(.horizontal, 14)
-        .frame(height: 58)
     }
 
     private func preferenceRow(_ title: String, value: String, symbol: String) -> some View {

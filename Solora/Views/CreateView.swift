@@ -1,7 +1,9 @@
+import Foundation
 import SwiftUI
 
 struct CreateView: View {
     let moments: [SoloraMoment]
+    let assistantStore: SoloraAssistantStore
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var mixerNamespace
@@ -11,9 +13,18 @@ struct CreateView: View {
     @State private var phase: SharePhase = .select
     @State private var target = "Associate Product Manager"
     @State private var generationTask: Task<Void, Never>?
+    @State private var showsMemorySelection = false
+    @State private var showsTalkingPoints = false
+    @State private var showsDeckPreview = false
 
-    init(moments: [SoloraMoment] = DemoFixtures.moments) {
+    @Environment(\.openURL) private var openURL
+
+    init(
+        moments: [SoloraMoment] = DemoFixtures.moments,
+        assistantStore: SoloraAssistantStore
+    ) {
         self.moments = moments
+        self.assistantStore = assistantStore
         _selectedIDs = State(initialValue: Set(moments.prefix(3).map(\.id)))
     }
 
@@ -60,6 +71,36 @@ struct CreateView: View {
             .sensoryFeedback(.success, trigger: phase) { _, value in value == .result }
         }
         .onDisappear { generationTask?.cancel() }
+        .sheet(isPresented: $showsMemorySelection) {
+            MemorySelectionSheet(moments: moments, selectedIDs: $selectedIDs)
+        }
+        .sheet(isPresented: $showsTalkingPoints) {
+            TalkingPointsSheet(moments: selectedMoments, target: target)
+        }
+        .sheet(isPresented: $showsDeckPreview) {
+            DeckPreviewSheet(moments: selectedMoments, target: target)
+        }
+        .onChange(of: showsMemorySelection) { _, isPresented in
+            if isPresented {
+                assistantStore.beginChildPresentation(.memorySelection)
+            } else {
+                assistantStore.endChildPresentation(.memorySelection)
+            }
+        }
+        .onChange(of: showsTalkingPoints) { _, isPresented in
+            if isPresented {
+                assistantStore.beginChildPresentation(.talkingPoints)
+            } else {
+                assistantStore.endChildPresentation(.talkingPoints)
+            }
+        }
+        .onChange(of: showsDeckPreview) { _, isPresented in
+            if isPresented {
+                assistantStore.beginChildPresentation(.deckPreview)
+            } else {
+                assistantStore.endChildPresentation(.deckPreview)
+            }
+        }
     }
 
     private var topBar: some View {
@@ -88,6 +129,8 @@ struct CreateView: View {
     private var selectionFlow: some View {
         VStack(alignment: .leading, spacing: 24) {
             targetField
+
+            selectionButton(title: "Select memories")
 
             MemoryMixer(
                 moments: moments,
@@ -147,6 +190,8 @@ struct CreateView: View {
         VStack(alignment: .leading, spacing: 18) {
             OutputPicker(selection: $output)
 
+            selectedMemorySummary
+
             ArtifactPreview(
                 output: output,
                 moments: selectedMoments,
@@ -155,33 +200,131 @@ struct CreateView: View {
             .id(output)
             .transition(reduceMotion ? .opacity : .soloraReveal)
 
-            HStack(spacing: 8) {
-                ForEach(Array(selectedMoments.prefix(3).enumerated()), id: \.element.id) { index, moment in
-                    SoloraOrbView(
-                        size: 28,
-                        color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count]
-                    )
-                    .accessibilityHidden(true)
-                }
+            outputActions
+        }
+    }
 
-                Text("Made from your real moments")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(SoloraTheme.ink.opacity(0.54))
-            }
-
-            ShareLink(item: shareText) {
-                HStack {
-                    Text(output.actionTitle)
-                    Spacer()
-                    Image(systemName: "square.and.arrow.up")
+    private var selectedMemorySummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Using \(selectedMoments.count) \(selectedMoments.count == 1 ? "memory" : "memories")")
+                        .font(.subheadline.weight(.bold))
+                    Text(selectedMoments.map(\.title).joined(separator: " · "))
+                        .font(.caption)
+                        .foregroundStyle(SoloraTheme.ink.opacity(0.58))
+                        .lineLimit(2)
                 }
-                .font(.headline.weight(.bold))
-                .foregroundStyle(SoloraTheme.cream)
-                .padding(.horizontal, 18)
-                .frame(height: 56)
-                .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
+                Spacer(minLength: 12)
+                Button("Change selection") { showsMemorySelection = true }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(SoloraTheme.coral)
+                    .frame(minHeight: 44)
             }
-            .buttonStyle(SoloraPressButtonStyle())
+        }
+        .padding(14)
+        .background(SoloraTheme.ink.opacity(0.055), in: RoundedRectangle(cornerRadius: 13))
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var outputActions: some View {
+        switch output {
+        case .story:
+            brandedAction(title: "Share to Instagram", mark: .instagram) {
+                openApp(primary: "instagram://", fallback: "https://www.instagram.com/")
+            }
+        case .post:
+            VStack(spacing: 10) {
+                brandedAction(title: "Share to LinkedIn", mark: .linkedIn) {
+                    openApp(primary: "linkedin://", fallback: "https://www.linkedin.com/feed/")
+                }
+                brandedAction(title: "Share to X", mark: .x) {
+                    let encoded = shareText.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                    openApp(primary: "twitter://post?message=\(encoded)", fallback: "https://x.com/intent/post?text=\(encoded)")
+                }
+            }
+        case .cv:
+            brandedAction(title: "View in Google Docs", mark: .googleDocs) {
+                openApp(primary: "googledocs://", fallback: "https://docs.google.com/document/u/0/")
+            }
+            Text("Opens Google Docs so you can paste or continue editing this CV. This preview has not been uploaded.")
+                .font(.caption)
+                .foregroundStyle(SoloraTheme.ink.opacity(0.54))
+        case .interview:
+            primaryAction(title: "Open talking points", symbol: "quote.bubble.fill") {
+                showsTalkingPoints = true
+            }
+        case .deck:
+            primaryAction(title: "Open deck preview", symbol: "rectangle.on.rectangle.angled") {
+                showsDeckPreview = true
+            }
+        }
+    }
+
+    private func selectionButton(title: String) -> some View {
+        Button { showsMemorySelection = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "checklist.checked")
+                    .font(.headline.weight(.bold))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.headline.weight(.bold))
+                    Text("\(selectedMoments.count) selected from \(moments.count)")
+                        .font(.caption.weight(.medium))
+                        .opacity(0.62)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption.weight(.black))
+            }
+            .foregroundStyle(SoloraTheme.ink)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 64)
+            .background(.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 14))
+            .soloraHairline(radius: 14)
+        }
+        .buttonStyle(SoloraPressButtonStyle())
+        .accessibilityHint("Choose one or more memories for this output")
+    }
+
+    private func primaryAction(title: String, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                Image(systemName: symbol)
+            }
+            .font(.headline.weight(.bold))
+            .foregroundStyle(SoloraTheme.cream)
+            .padding(.horizontal, 18)
+            .frame(height: 56)
+            .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
+        }
+        .buttonStyle(SoloraPressButtonStyle())
+    }
+
+    private func brandedAction(title: String, mark: ShareBrandMark, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                ShareBrandIcon(mark: mark)
+                Text(title)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.subheadline.weight(.bold))
+            }
+            .font(.headline.weight(.bold))
+            .foregroundStyle(SoloraTheme.cream)
+            .padding(.horizontal, 14)
+            .frame(height: 56)
+            .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
+        }
+        .buttonStyle(SoloraPressButtonStyle())
+        .accessibilityLabel(title)
+    }
+
+    private func openApp(primary: String, fallback: String) {
+        guard let primaryURL = URL(string: primary), let fallbackURL = URL(string: fallback) else { return }
+        openURL(primaryURL) { accepted in
+            if !accepted { openURL(fallbackURL) }
         }
     }
 
@@ -192,11 +335,11 @@ struct CreateView: View {
         case .interview:
             return "Talking points for \(target):\n" + selectedMoments.map(\.summary).joined(separator: "\n")
         case .post:
-            return "A recent reminder: the best career progress is often a series of small moments. \(selectedMoments.first?.summary ?? "")"
+            return selectedMoments.map { "\($0.title): \($0.summary)" }.joined(separator: "\n\n")
         case .story:
-            return "Three moments. One clearer direction."
+            return selectedMoments.map { "\($0.title) — \($0.summary)" }.joined(separator: "\n")
         case .deck:
-            return "From moments to momentum — a five-slide Solora story."
+            return "From moments to momentum:\n" + selectedMoments.map { "• \($0.title): \($0.summary)" }.joined(separator: "\n")
         }
     }
 
@@ -207,10 +350,6 @@ struct CreateView: View {
                 return
             }
 
-            if selectedIDs.count == 3,
-               let firstSelected = moments.first(where: { selectedIDs.contains($0.id) }) {
-                selectedIDs.remove(firstSelected.id)
-            }
             selectedIDs.insert(moment.id)
         }
     }
@@ -281,6 +420,62 @@ private enum ShareOutput: String, CaseIterable, Identifiable {
         case .post: "Share post"
         case .story: "Share Story"
         }
+    }
+}
+
+enum ShareBrandMark {
+    case instagram
+    case linkedIn
+    case x
+    case googleDocs
+}
+
+struct ShareBrandIcon: View {
+    let mark: ShareBrandMark
+
+    var body: some View {
+        Group {
+            switch mark {
+            case .instagram:
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(lineWidth: 2)
+                    .overlay {
+                        Circle().stroke(lineWidth: 2).frame(width: 9, height: 9)
+                        Circle().fill(SoloraTheme.cream).frame(width: 3, height: 3).offset(x: 7, y: -7)
+                    }
+            case .linkedIn:
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(SoloraTheme.cream)
+                    .overlay {
+                        Text("in")
+                            .font(.system(size: 14, weight: .black, design: .rounded))
+                            .foregroundStyle(SoloraTheme.ink)
+                            .offset(y: -1)
+                    }
+            case .x:
+                Text("𝕏")
+                    .font(.system(size: 20, weight: .bold))
+            case .googleDocs:
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 3,
+                    bottomLeadingRadius: 3,
+                    bottomTrailingRadius: 3,
+                    topTrailingRadius: 8
+                )
+                .fill(Color(red: 0.26, green: 0.52, blue: 0.96))
+                .overlay(alignment: .bottom) {
+                    VStack(spacing: 3) {
+                        Capsule().frame(width: 13, height: 2)
+                        Capsule().frame(width: 13, height: 2)
+                        Capsule().frame(width: 9, height: 2)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.bottom, 5)
+                }
+            }
+        }
+        .frame(width: 26, height: 26)
+        .accessibilityHidden(true)
     }
 }
 
@@ -356,7 +551,7 @@ private struct MemoryMixer: View {
                     Text("Choose your proof")
                         .font(.subheadline.weight(.bold))
                     Spacer()
-                    Text("\(selectedIDs.count)/3")
+                    Text("\(selectedIDs.count) selected")
                         .font(.caption.monospacedDigit().weight(.bold))
                         .foregroundStyle(SoloraTheme.gold)
                 }
@@ -370,7 +565,8 @@ private struct MemoryMixer: View {
                                     SoloraOrbView(
                                         size: selected ? 58 : 48,
                                         color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
-                                        showsHalo: selected
+                                        showsHalo: selected,
+                                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
                                     )
                                     .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
 
@@ -471,7 +667,8 @@ private struct GenerationTheatre: View {
                     SoloraOrbView(
                         size: 62,
                         color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
-                        showsHalo: phase == .orbit
+                        showsHalo: phase == .orbit,
+                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
                     )
                     .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
                     .offset(orbOffset(index: index, phase: phase))
@@ -570,11 +767,12 @@ private struct ArtifactPreview: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Spacer()
-                Text("03")
+                Text(String(format: "%02d", moments.count))
                     .font(.system(size: 82, weight: .black, design: .rounded))
                     .tracking(-4)
-                Text("moments that\nchanged my direction")
+                Text(storyHeadline)
                     .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .lineLimit(4)
                 Text("SOLORA · JULY")
                     .font(.caption2.weight(.black))
                     .tracking(1.6)
@@ -584,6 +782,12 @@ private struct ArtifactPreview: View {
         }
         .foregroundStyle(SoloraTheme.ink)
         .frame(width: 270, height: 430)
+    }
+
+    private var storyHeadline: String {
+        guard let first = moments.first else { return "A clearer next step" }
+        if moments.count == 1 { return first.title }
+        return "\(first.title)\nand \(moments.count - 1) more turning \(moments.count == 2 ? "point" : "points")"
     }
 
     private var post: some View {
@@ -596,7 +800,7 @@ private struct ArtifactPreview: View {
                     Text("now").font(.caption).opacity(0.48)
                 }
             }
-            Text("The best career progress is often a series of small moments.")
+            Text(moments.first?.title ?? "A career moment worth sharing")
                 .font(.title3.weight(.bold))
             Text(moments.first?.summary ?? "A new perspective became a useful next step.")
                 .font(.body)
@@ -677,8 +881,9 @@ private struct ArtifactPreview: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("01 / 05").font(.caption2.weight(.black)).tracking(1.4).opacity(0.54)
                     Spacer()
-                    Text("From moments\nto momentum.")
+                    Text(moments.first?.title ?? "From moments\nto momentum.")
                         .font(.system(size: 29, weight: .bold, design: .rounded))
+                        .lineLimit(3)
                 }
                 .padding(20)
             }

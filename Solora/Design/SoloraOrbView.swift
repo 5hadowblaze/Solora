@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SoloraOrbView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -7,6 +8,7 @@ struct SoloraOrbView: View {
     var color: Color = SoloraTheme.gold
     var isAlive = false
     var showsHalo = false
+    var mediaPath: String?
 
     var body: some View {
         Group {
@@ -108,6 +110,21 @@ struct SoloraOrbView: View {
             }
             .clipShape(Circle().inset(by: size * 0.025))
 
+            if let mediaPath, !mediaPath.isEmpty {
+                SoloraMomentMediaImage(path: mediaPath)
+                    .frame(width: size * 0.94, height: size * 0.94)
+                    .clipShape(Circle())
+                    .overlay {
+                        Circle().fill(
+                            LinearGradient(
+                                colors: [.white.opacity(0.22), .clear, color.opacity(0.14)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    }
+            }
+
             Circle()
                 .fill(
                     LinearGradient(
@@ -155,5 +172,38 @@ struct SoloraOrbView: View {
         .compositingGroup()
         .shadow(color: SoloraTheme.plum.opacity(0.16), radius: size * 0.05, y: size * 0.04)
         .shadow(color: color.opacity(0.3), radius: size * 0.18, y: size * 0.1)
+    }
+}
+
+private struct SoloraMomentMediaImage: View {
+    let path: String
+    @State private var resolvedImage: Image?
+
+    var body: some View {
+        Group {
+            if let resolvedImage {
+                resolvedImage.resizable().scaledToFill().transition(.opacity)
+            } else {
+                Color.clear
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: resolvedImage != nil)
+        .task(id: path) {
+            guard let data = try? await SoloraMomentMediaDataCache.shared.data(for: path),
+                  let image = UIImage(data: data) else { return }
+            resolvedImage = Image(uiImage: image)
+        }
+    }
+}
+
+private actor SoloraMomentMediaDataCache {
+    static let shared = SoloraMomentMediaDataCache()
+    private var cachedData: [String: Data] = [:]
+
+    func data(for path: String) async throws -> Data {
+        if let cached = cachedData[path] { return cached }
+        let data = try await FirebaseMomentMediaRepository.imageData(for: path)
+        cachedData[path] = data
+        return data
     }
 }

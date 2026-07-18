@@ -1,10 +1,13 @@
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let moments: [SoloraMoment]
-    let onSave: (String) -> Bool
+    let assistantStore: SoloraAssistantStore
+    let onSave: @MainActor (String, Data?, @escaping @MainActor (Double) -> Void) async -> Bool
 
     @State private var showsCapture = false
     @State private var showsFormation = false
@@ -34,9 +37,11 @@ struct TodayView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showsCapture) {
-                CaptureMomentSheet { reflection in
-                    completeCapture(reflection)
+            .sheet(isPresented: $showsCapture, onDismiss: {
+                assistantStore.endChildPresentation(.reflection)
+            }) {
+                CaptureMomentSheet(assistantStore: assistantStore) { reflection, photoData, onProgress in
+                    await completeCapture(reflection, photoData: photoData, onProgress: onProgress)
                 }
             }
             .overlay {
@@ -133,6 +138,8 @@ struct TodayView: View {
 
                 Button {
                     savedReflection = false
+                    assistantStore.beginReflection(context: "Product strategy workshop")
+                    assistantStore.beginChildPresentation(.reflection)
                     showsCapture = true
                 } label: {
                     HStack {
@@ -184,11 +191,16 @@ struct TodayView: View {
         .foregroundStyle(SoloraTheme.ink)
     }
 
-    private func completeCapture(_ reflection: String) {
+    @MainActor
+    private func completeCapture(
+        _ reflection: String,
+        photoData: Data?,
+        onProgress: @escaping @MainActor (Double) -> Void
+    ) async -> Bool {
         captureTask?.cancel()
         toastTask?.cancel()
         savedReflection = false
-        guard onSave(reflection) else { return }
+        guard await onSave(reflection, photoData, onProgress) else { return false }
         showsCapture = false
 
         withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {
@@ -211,6 +223,7 @@ struct TodayView: View {
                 }
             }
         }
+        return true
     }
 }
 
@@ -220,7 +233,11 @@ private struct RecentMemory: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            SoloraOrbView(size: 68, color: color)
+            SoloraOrbView(
+                size: 68,
+                color: color,
+                mediaPath: moment.photoPaths.first ?? moment.stickerPath
+            )
                 .accessibilityHidden(true)
 
             Text(shortTitle)
@@ -242,11 +259,18 @@ private struct RecentMemory: View {
 }
 
 private struct CaptureMomentSheet: View {
-    let onSave: (String) -> Void
+    @ObservedObject var assistantStore: SoloraAssistantStore
+    let onSave: @MainActor (String, Data?, @escaping @MainActor (Double) -> Void) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var reflection = ""
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var photoData: Data?
+    @State private var photoThumbnail: Image?
+    @State private var isSaving = false
+    @State private var uploadProgress = 0.0
+    @State private var errorMessage: String?
 
     private let prompts = [
         "I clarified the decision.",
@@ -261,8 +285,7 @@ private struct CaptureMomentSheet: View {
 
                 VStack(alignment: .leading, spacing: 22) {
                     HStack {
-                        SoloraOrbView(size: 54, color: SoloraTheme.coral, isAlive: true)
-                            .accessibilityHidden(true)
+                        SoloraReflectionAssistantIdentity(store: assistantStore)
                         Spacer()
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
@@ -314,10 +337,56 @@ private struct CaptureMomentSheet: View {
                         .background(.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 12))
                         .soloraHairline(radius: 12)
 
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        HStack(spacing: 12) {
+                            if let photoThumbnail {
+                                photoThumbnail
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 44, height: 44)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            } else {
+                                Image(systemName: "photo.badge.plus")
+                                    .font(.headline.weight(.semibold))
+                                    .frame(width: 44, height: 44)
+                                    .background(SoloraTheme.ink.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
+                            }
+                            Text(photoData == nil ? "Add photo" : "Photo added")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                        }
+                        .foregroundStyle(SoloraTheme.ink)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving)
+
+                    if isSaving, photoData != nil {
+                        ProgressView(value: uploadProgress) {
+                            Text("Uploading photo…").font(.caption.weight(.semibold))
+                        }
+                        .tint(SoloraTheme.coral)
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(SoloraTheme.coral)
+                    }
+
                     Spacer(minLength: 0)
 
                     Button {
-                        onSave(reflection)
+                        assistantStore.continueReflection(note: reflection)
+                        errorMessage = nil
+                        isSaving = true
+                        Task { @MainActor in
+                            let didSave = await onSave(reflection, photoData) { progress in
+                                uploadProgress = progress
+                            }
+                            isSaving = false
+                            if !didSave { errorMessage = "This moment could not be saved. Please try again." }
+                        }
                     } label: {
                         HStack {
                             Text("Keep it")
@@ -331,6 +400,7 @@ private struct CaptureMomentSheet: View {
                         .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
                     }
                     .buttonStyle(SoloraPressButtonStyle())
+                    .disabled(isSaving || reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(20)
             }
@@ -338,6 +408,44 @@ private struct CaptureMomentSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+        .onChange(of: selectedPhoto) { _, item in
+            guard let item else {
+                photoData = nil
+                photoThumbnail = nil
+                return
+            }
+            Task { @MainActor in
+                do {
+                    guard let rawData = try await item.loadTransferable(type: Data.self),
+                          let image = UIImage(data: rawData),
+                          let preparedData = preparedJPEG(from: image) else {
+                        throw MomentMediaError.invalidSize
+                    }
+                    photoData = preparedData
+                    photoThumbnail = Image(uiImage: image)
+                    errorMessage = nil
+                } catch {
+                    selectedPhoto = nil
+                    photoData = nil
+                    photoThumbnail = nil
+                    errorMessage = "That photo could not be prepared. Choose another image."
+                }
+            }
+        }
+    }
+
+    private func preparedJPEG(from image: UIImage) -> Data? {
+        let longestSide = max(image.size.width, image.size.height)
+        let scale = longestSide > 2_048 ? 2_048 / longestSide : 1
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let rendered = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        guard let data = rendered.jpegData(compressionQuality: 0.82),
+              data.count <= FirebaseMomentMediaRepository.maximumUploadBytes else { return nil }
+        return data
     }
 }
 
@@ -452,7 +560,11 @@ struct MomentRow: View {
 
     var body: some View {
         HStack(spacing: 13) {
-            SoloraOrbView(size: 44, color: color)
+            SoloraOrbView(
+                size: 44,
+                color: color,
+                mediaPath: moment.photoPaths.first ?? moment.stickerPath
+            )
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {

@@ -31,7 +31,7 @@ enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
         switch self {
         case .cv: "Roles, projects and skills"
         case .calendar: "Moments worth remembering"
-        case .chatGPT: "Themes from an exported archive"
+        case .chatGPT: "Copy a prompt, then review what comes back"
         }
     }
 

@@ -2,6 +2,19 @@ import XCTest
 @testable import Solora
 
 final class SoloraMomentTests: XCTestCase {
+    func testOnboardingCompletionOnlyLastsForSignedInSession() {
+        let user = AuthenticatedUser(id: "person-1", displayName: "Amir", email: nil, photoURL: nil)
+        var onboarding = OnboardingSessionState()
+
+        XCTAssertTrue(onboarding.requiresOnboarding(for: user.id))
+
+        onboarding.complete(for: user.id)
+        XCTAssertFalse(onboarding.requiresOnboarding(for: user.id))
+
+        onboarding.authenticationDidSignOut()
+        XCTAssertTrue(onboarding.requiresOnboarding(for: user.id))
+    }
+
     func testMomentJSONRoundTrip() throws {
         let moment = SoloraMoment(
             id: "moment-1",

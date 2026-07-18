@@ -195,7 +195,7 @@ private struct SoloraFormationField: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Your connected sources forming a Solora")
+        .accessibilityLabel("Your selected sources forming a Solora")
     }
 
     private func formation(in size: CGSize, time: TimeInterval) -> some View {
