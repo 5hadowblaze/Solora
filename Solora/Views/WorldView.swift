@@ -86,6 +86,7 @@ struct WorldView: View {
                 ArchiveView(moments: moments)
             }
             .sensoryFeedback(.selection, trigger: selectedID)
+            .sensoryFeedback(.selection, trigger: skin)
             .sensoryFeedback(.impact(weight: .light), trigger: arrangement)
         }
     }
@@ -98,6 +99,7 @@ struct WorldView: View {
                 Text(skin.title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(skin.foreground.opacity(0.58))
+                    .contentTransition(.interpolate)
             }
 
             Spacer()
@@ -115,9 +117,11 @@ struct WorldView: View {
                 }
             } label: {
                 Image(systemName: "paintpalette.fill")
+                    .symbolEffect(.bounce, value: skin)
                     .frame(width: 44, height: 44)
                     .background(skin.controlFill, in: Circle())
             }
+            .buttonStyle(SoloraPressButtonStyle())
             .accessibilityLabel("World style: \(skin.title)")
 
             Button { showsArchive = true } label: {
@@ -162,6 +166,8 @@ struct WorldView: View {
                     .soloraHairline(skin.dockStroke, radius: 14)
                 }
                 .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
+                .id(moment.id)
+                .transition(reduceMotion ? .opacity : .soloraReveal)
             }
 
             HStack {
@@ -206,7 +212,7 @@ struct WorldView: View {
                     width: settledDrag.width + value.predictedEndTranslation.width * 0.16,
                     height: settledDrag.height + value.predictedEndTranslation.height * 0.10
                 )
-                withAnimation(.spring(duration: 0.45, bounce: 0.08)) {
+                withAnimation(SoloraMotion.spatial) {
                     settledDrag = CGSize(
                         width: min(26, max(-26, proposed.width)),
                         height: min(18, max(-18, proposed.height))

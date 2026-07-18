@@ -22,3 +22,9 @@ Codex analysed the Career Fridge IPA, reframed the product as Solora, and collab
 - Saving a reflection now triggers an accessible Solora-formation reward, success haptic, animated archive count, inserted memory transition, and automatically dismissing confirmation toast.
 - World switching uses matched geometry, regeneration spatially reorders persistent memories, and Create reveals progress, ranked evidence, selection changes, and output previews with purpose-specific motion.
 - The full project built and all unit tests passed on iPhone 17 Pro Simulator. Codex also walked the live onboarding, capture, World, and Create flows and repeated launch verification with Reduce Motion enabled.
+
+## 2026-07-18 — Motion bridge into the reimagined design
+
+- The motion language from `dc75961` is an intentional product invariant; the earlier screen composition is not. New surfaces must reuse the shared springs, tactile press feedback, blur-assisted reveals, haptics, and reduced-motion fallbacks without restoring the former layout.
+- The redesigned flow now expresses that language as gather → orbit → settle → unfold: capture condenses into lore, Lore preserves spatial continuity while memories move and expand, and Share carries the same selected orbs into each generated artifact.
+- Traveling matched-geometry selection, symbol feedback, and the shared spatial spring were carried into the new Share output picker and Lore world controls so state changes move rather than blink.

@@ -288,6 +288,7 @@ private enum ShareOutput: String, CaseIterable, Identifiable {
 private struct OutputPicker: View {
     @Binding var selection: ShareOutput
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var selectionNamespace
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -301,15 +302,25 @@ private struct OutputPicker: View {
                         VStack(spacing: 7) {
                             Image(systemName: output.symbol)
                                 .font(.system(size: 18, weight: .semibold))
+                                .symbolEffect(.bounce, value: selection == output)
                             Text(output.title)
                                 .font(.caption.weight(.bold))
                         }
                         .foregroundStyle(selection == output ? SoloraTheme.cream : SoloraTheme.ink)
                         .frame(width: 67, height: 66)
-                        .background(
-                            selection == output ? SoloraTheme.ink : Color.white.opacity(0.48),
-                            in: RoundedRectangle(cornerRadius: 11)
-                        )
+                        .background {
+                            RoundedRectangle(cornerRadius: 11)
+                                .fill(Color.white.opacity(0.48))
+
+                            if selection == output {
+                                RoundedRectangle(cornerRadius: 11)
+                                    .fill(SoloraTheme.ink)
+                                    .matchedGeometryEffect(
+                                        id: "share-output-selection",
+                                        in: selectionNamespace
+                                    )
+                            }
+                        }
                         .soloraHairline(
                             selection == output ? SoloraTheme.ink : SoloraTheme.ink.opacity(0.08),
                             radius: 11
@@ -321,6 +332,7 @@ private struct OutputPicker: View {
             }
         }
         .contentMargins(.horizontal, 0, for: .scrollContent)
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 
