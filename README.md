@@ -21,6 +21,13 @@ solora makes reflection feel more like collecting constellations than filling in
 
 every interaction is built around soft glass, luminous colour, and satisfying motion: memories condense into orbs, orbit together, and unfold into new possibilities. solora is where your lore, your aura, and your future start to connect.
 
+## solora in action
+
+| now | lore |
+| --- | --- |
+| <img src="docs/screenshots/solora-now-bubbles.png" alt="Solora Now screen showing a workshop reflection and a row of photo-and-sticker glass memory bubbles" width="300"> | <img src="docs/screenshots/solora-lore-bubbles.png" alt="Solora Lore Core room showing photo-and-sticker glass memory bubbles arranged across the interactive world" width="300"> |
+| A finished workshop stays glowing in **Now**, ready to become part of your lore. | Photo-and-sticker memories become tactile glass bubbles inside the **Core room**. |
+
 ## stack
 
 - **native iOS:** Swift, SwiftUI, PhotosUI, and UIKit image processing
