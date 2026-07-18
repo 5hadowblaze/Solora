@@ -118,18 +118,14 @@ Solora turns CV history, calendar events, and short reflections into a private L
 2. Run `xcodegen generate`.
 3. Open `Solora.xcodeproj` or run the documented `xcodebuild` command.
 
-The iOS app never contains an OpenAI API key. AI calls are routed through Firebase Functions.
+The iOS app never contains an OpenAI or other server-side secret. AI calls are routed through Firebase Functions; generated Firebase client configuration is expected and is not a server secret.
 ```
 
-- [ ] **Step 4: Copy the approved product design**
+- [ ] **Step 4: Create the pointer to the approved product design**
 
-Run:
+Create `docs/product-design.md` as a concise pointer to `docs/superpowers/specs/2026-07-18-solora-product-design.md`, preserving the approved status and tagline.
 
-```bash
-cp "/Users/amirdzakwan/Documents/Solora/docs/superpowers/specs/2026-07-18-solora-product-design.md" docs/product-design.md
-```
-
-Expected: `docs/product-design.md` contains the approved Solora specification.
+Expected: `docs/product-design.md` links to the canonical approved Solora specification without duplicating it.
 
 - [ ] **Step 5: Start the Codex build journal**
 
@@ -1098,5 +1094,5 @@ The plan is complete when:
 4. The five-tab SwiftUI shell builds and launches on the pinned iPhone 17 Pro Simulator.
 5. Core model and manifest-fallback tests pass.
 6. The Firebase Functions health test passes locally.
-7. No API key is present in the iOS repository.
+7. No OpenAI or other server-side secret is tracked; generated Firebase client configuration is expected and is not treated as a server secret.
 8. The build journal records meaningful Codex involvement.

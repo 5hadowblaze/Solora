@@ -1,8 +1,8 @@
 # Solora Product Design
 
-**Date:** 18 July 2026  
-**Status:** Approved concept, awaiting written-spec review  
-**Target:** Native iOS hackathon demo  
+**Date:** 18 July 2026
+**Status:** Approved for implementation
+**Target:** Native iOS hackathon demo
 **Tagline:** Your life becomes your lore.
 
 ## 1. Product summary
@@ -427,4 +427,3 @@ The hackathon design is implemented when:
 6. The job-description flow produces a credible tailored CV and interview pack.
 7. The visual language clearly descends from Career Fridge while presenting Solora as a broader product.
 8. The build journal provides clear evidence of meaningful Codex use.
-
