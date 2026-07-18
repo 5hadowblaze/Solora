@@ -2,10 +2,26 @@ import SwiftUI
 
 struct WorldView: View {
     let manifest: WorldManifest
+    let moments: [SoloraMoment]
+    let vibe: String
+    let visualReference: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var selection: WorldRecommendation = .memoryShelves
+    @State private var selection: WorldRecommendation
     @State private var arrangementVersion = 1
+
+    init(
+        manifest: WorldManifest,
+        moments: [SoloraMoment] = DemoFixtures.moments,
+        vibe: String = "thoughtful",
+        visualReference: String = "Inside Out orbs"
+    ) {
+        self.manifest = manifest
+        self.moments = moments
+        self.vibe = vibe
+        self.visualReference = visualReference
+        _selection = State(initialValue: WorldRecommendation.initial(for: visualReference))
+    }
 
     var body: some View {
         NavigationStack {
@@ -17,13 +33,13 @@ struct WorldView: View {
                     ZStack {
                         switch selection {
                         case .memoryShelves:
-                            MemoryShelvesWorld(arrangementVersion: $arrangementVersion)
+                            MemoryShelvesWorld(moments: moments, arrangementVersion: $arrangementVersion)
                                 .transition(worldTransition)
                         case .careerFridge:
-                            CareerFridgeWorld()
+                            CareerFridgeWorld(moments: moments)
                                 .transition(worldTransition)
                         case .questMap:
-                            QuestMapWorld()
+                            QuestMapWorld(moments: moments)
                                 .transition(worldTransition)
                         }
                     }
@@ -46,6 +62,9 @@ struct WorldView: View {
             Text(manifest.subtitle)
                 .font(.body)
                 .foregroundStyle(SoloraTheme.ink.opacity(0.72))
+            Text("Designed for your \(vibe) vibe")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(SoloraTheme.coral)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 12)
@@ -114,19 +133,38 @@ private enum WorldRecommendation: String, CaseIterable, Identifiable {
         case .questMap: "point.topleft.down.curvedto.point.bottomright.up"
         }
     }
+
+    static func initial(for visualReference: String) -> Self {
+        let reference = visualReference.lowercased()
+        if reference.contains("career fridge") || reference.contains("magnet") { return .careerFridge }
+        if reference.contains("quest map") || reference.contains("map") { return .questMap }
+        return .memoryShelves
+    }
 }
 
 private struct MemoryShelvesWorld: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var arrangementVersion: Int
+    let moments: [SoloraMoment]
 
-    private let memories = [
-        ShelfMemory(title: "Found clarity", skill: "Strategy", color: SoloraTheme.gold, size: 86),
-        ShelfMemory(title: "Made the first move", skill: "Courage", color: SoloraTheme.coral, size: 70),
-        ShelfMemory(title: "Aligned the room", skill: "Facilitation", color: SoloraTheme.lavender, size: 92),
-        ShelfMemory(title: "Built the bridge", skill: "Relationships", color: SoloraTheme.gold, size: 74),
-        ShelfMemory(title: "Shipped the brief", skill: "Craft", color: SoloraTheme.coral, size: 82)
-    ]
+    private var memories: [ShelfMemory] {
+        let source = moments.isEmpty ? DemoFixtures.moments : moments
+        let ordered: [SoloraMoment]
+        switch arrangementVersion {
+        case 2: ordered = source.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case 3: ordered = Array(source.reversed())
+        default: ordered = source
+        }
+        return ordered.enumerated().map { index, moment in
+            ShelfMemory(
+                title: moment.title,
+                summary: moment.summary,
+                skill: shelfLabel(for: moment, index: index),
+                color: [SoloraTheme.gold, SoloraTheme.coral, SoloraTheme.lavender][index % 3],
+                size: [82, 70, 90, 76, 84][index % 5]
+            )
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -134,7 +172,7 @@ private struct MemoryShelvesWorld: View {
                 Text("Memory Shelves")
                     .font(.system(.title, design: .serif, weight: .bold))
                     .foregroundStyle(SoloraTheme.ink)
-                Text("AI arranged from your archive")
+                Text(arrangementDescription)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(SoloraTheme.coral)
                 Text("Your brightest evidence, gathered into a world you can return to.")
@@ -148,7 +186,7 @@ private struct MemoryShelvesWorld: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Arrangement \(arrangementVersion)")
                         .font(.footnote.weight(.bold))
-                    Text("A fresh take on the same memories")
+                    Text(arrangementDescription)
                         .font(.caption)
                         .foregroundStyle(SoloraTheme.ink.opacity(0.65))
                 }
@@ -164,7 +202,7 @@ private struct MemoryShelvesWorld: View {
                         .background(SoloraTheme.coral, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("Changes the arrangement version for this demo. No network is used.")
+                .accessibilityHint("Reinterprets the same saved moments with a different grouping. No network is used.")
             }
             .foregroundStyle(SoloraTheme.ink)
             .padding(.top, 2)
@@ -187,8 +225,8 @@ private struct MemoryShelvesWorld: View {
                     .offset(x: width * 0.37, y: -90)
 
                 VStack(alignment: .leading, spacing: 49) {
-                    shelfRow([memories[0], memories[1]], offset: arrangementVersion == 2 ? 10 : 0)
-                    shelfRow([memories[2], memories[3], memories[4]], offset: arrangementVersion == 3 ? 14 : 0)
+                    shelfRow(Array(memories.prefix(firstShelfCount)), offset: arrangementVersion == 2 ? 10 : 0)
+                    shelfRow(Array(memories.dropFirst(firstShelfCount)), offset: arrangementVersion == 3 ? 14 : 0)
                 }
                 .padding(.horizontal, 18)
                 .padding(.bottom, 30)
@@ -196,7 +234,7 @@ private struct MemoryShelvesWorld: View {
         }
         .frame(height: 368)
         .accessibilityLabel("Memory shelves, arrangement \(arrangementVersion)")
-        .accessibilityHint("Five labeled memory orbs are displayed on warm wooden shelves")
+        .accessibilityHint("Saved moments appear as labeled memory orbs on warm wooden shelves")
     }
 
     private func shelfRow(_ items: [ShelfMemory], offset: CGFloat) -> some View {
@@ -217,12 +255,15 @@ private struct MemoryShelvesWorld: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .frame(width: memory.size + 12)
-                        Text(memory.skill)
+                        Text(memory.summary)
                             .font(.caption2)
                             .foregroundStyle(memory.color.opacity(0.95))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .frame(width: memory.size + 12)
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(memory.title), \(memory.skill) memory")
+                    .accessibilityLabel("\(memory.title), \(memory.summary). \(memory.skill) memory")
                     .accessibilityHint("An archived moment arranged by Solora")
                 }
             }
@@ -230,10 +271,29 @@ private struct MemoryShelvesWorld: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: arrangementVersion)
     }
+
+    private var firstShelfCount: Int {
+        guard memories.count > 1 else { return memories.count }
+        return arrangementVersion == 2 ? max(1, memories.count - 1) : (memories.count + 1) / 2
+    }
+
+    private var arrangementDescription: String {
+        switch arrangementVersion {
+        case 2: "Alphabetized by the stories you named"
+        case 3: "Newest perspective, with the latest moments first"
+        default: "Your saved evidence, grouped by momentum"
+        }
+    }
+
+    private func shelfLabel(for moment: SoloraMoment, index: Int) -> String {
+        let words = moment.summary.split(separator: " ")
+        return words.first.map(String.init) ?? ["Momentum", "Courage", "Craft"][index % 3]
+    }
 }
 
 private struct ShelfMemory: Identifiable {
     let title: String
+    let summary: String
     let skill: String
     let color: Color
     let size: CGFloat
@@ -241,7 +301,14 @@ private struct ShelfMemory: Identifiable {
 }
 
 private struct CareerFridgeWorld: View {
-    private let tiles = [("You advocated", "Leadership"), ("Workshop win", "Facilitation"), ("Kind follow-up", "Relationships"), ("Portfolio spark", "Craft")]
+    let moments: [SoloraMoment]
+
+    private var tiles: [(String, String)] {
+        let source = moments.isEmpty ? DemoFixtures.moments : moments
+        return source.prefix(4).enumerated().map { index, moment in
+            (moment.title, ["Momentum", "Proof", "Connection", "Craft"][index % 4])
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -261,7 +328,7 @@ private struct CareerFridgeWorld: View {
                     }
                     .padding(15)
                     .background(SoloraTheme.cream, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .rotationEffect(.degrees(tile.0 == "Workshop win" ? -2 : 1))
+                    .rotationEffect(.degrees(tile.0.hashValue.isMultiple(of: 2) ? -2 : 1))
                 }
             }
             .padding(18)
@@ -269,12 +336,19 @@ private struct CareerFridgeWorld: View {
         }
         .foregroundStyle(SoloraTheme.ink)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Career Fridge with four magnet memories")
+        .accessibilityLabel("Career Fridge with saved-moment magnets")
     }
 }
 
 private struct QuestMapWorld: View {
-    private let stops = [("Curiosity", "Asked a sharper question"), ("Momentum", "Started the conversation"), ("Mastery", "Turned insight into craft")]
+    let moments: [SoloraMoment]
+
+    private var stops: [(String, String)] {
+        let source = moments.isEmpty ? DemoFixtures.moments : moments
+        return source.prefix(3).enumerated().map { index, moment in
+            (["Curiosity", "Momentum", "Mastery"][index], moment.title)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -304,6 +378,6 @@ private struct QuestMapWorld: View {
         }
         .foregroundStyle(SoloraTheme.ink)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Quest map with three career journey nodes")
+        .accessibilityLabel("Quest map with saved-moment career journey nodes")
     }
 }
