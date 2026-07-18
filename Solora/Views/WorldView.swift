@@ -43,7 +43,11 @@ struct WorldView: View {
         NavigationStack {
             GeometryReader { proxy in
                 ZStack {
-                    skin.background.ignoresSafeArea()
+                    LoreBackdrop(
+                        skin: skin,
+                        parallax: combinedDrag,
+                        reduceMotion: reduceMotion
+                    )
 
                     LoreCanvas(
                         moments: displayedMoments,
@@ -268,14 +272,6 @@ private enum LoreSkin: String, CaseIterable, Identifiable {
         }
     }
 
-    var background: Color {
-        switch self {
-        case .coreRoom: SoloraTheme.ink
-        case .constellation: SoloraTheme.plum
-        case .fridge: SoloraTheme.coral
-        }
-    }
-
     var foreground: Color { skinIsLight ? SoloraTheme.ink : SoloraTheme.cream }
     var controlFill: Color { skinIsLight ? SoloraTheme.ink.opacity(0.08) : SoloraTheme.cream.opacity(0.10) }
     var dockFill: Color { skinIsLight ? SoloraTheme.cream.opacity(0.92) : SoloraTheme.cream.opacity(0.94) }
@@ -288,6 +284,515 @@ private enum LoreSkin: String, CaseIterable, Identifiable {
         if lowered.contains("fridge") || lowered.contains("magnet") { return .fridge }
         if lowered.contains("map") { return .constellation }
         return .coreRoom
+    }
+}
+
+private struct LoreBackdrop: View {
+    let skin: LoreSkin
+    let parallax: CGSize
+    let reduceMotion: Bool
+
+    var body: some View {
+        Group {
+            switch skin {
+            case .coreRoom:
+                CoreMindBackdrop(parallax: parallax)
+            case .constellation:
+                NightSkyBackdrop(parallax: parallax)
+            case .fridge:
+                CareerFridgeBackdrop(parallax: parallax)
+            }
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: skin)
+    }
+}
+
+private struct CoreMindBackdrop: View {
+    let parallax: CGSize
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.10, green: 0.05, blue: 0.18),
+                        Color(red: 0.24, green: 0.08, blue: 0.25),
+                        Color(red: 0.09, green: 0.12, blue: 0.25)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                Circle()
+                    .fill(Color(red: 1.00, green: 0.35, blue: 0.43).opacity(0.72))
+                    .frame(width: size.width * 1.05)
+                    .blur(radius: 76)
+                    .offset(
+                        x: size.width * 0.42 + parallax.width * 0.12,
+                        y: -size.height * 0.25 + parallax.height * 0.12
+                    )
+
+                Circle()
+                    .fill(Color(red: 0.99, green: 0.70, blue: 0.22).opacity(0.58))
+                    .frame(width: size.width * 0.72)
+                    .blur(radius: 68)
+                    .offset(
+                        x: -size.width * 0.37 + parallax.width * 0.20,
+                        y: size.height * 0.29 + parallax.height * 0.20
+                    )
+
+                Circle()
+                    .fill(Color(red: 0.28, green: 0.78, blue: 0.86).opacity(0.40))
+                    .frame(width: size.width * 0.86)
+                    .blur(radius: 82)
+                    .offset(
+                        x: size.width * 0.28 + parallax.width * 0.28,
+                        y: size.height * 0.42 + parallax.height * 0.28
+                    )
+
+                Circle()
+                    .fill(SoloraTheme.lavender.opacity(0.46))
+                    .frame(width: size.width * 0.58)
+                    .blur(radius: 54)
+                    .offset(
+                        x: -size.width * 0.32 + parallax.width * 0.34,
+                        y: -size.height * 0.08 + parallax.height * 0.34
+                    )
+
+                CoreEnergyField(size: size)
+                    .offset(x: parallax.width * 0.16, y: parallax.height * 0.16)
+
+                Ellipse()
+                    .stroke(
+                        AngularGradient(
+                            colors: [
+                                .clear,
+                                SoloraTheme.gold.opacity(0.46),
+                                Color.white.opacity(0.16),
+                                .clear
+                            ],
+                            center: .center
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(width: size.width * 1.08, height: size.height * 0.34)
+                    .rotationEffect(.degrees(-14))
+                    .offset(x: parallax.width * 0.42, y: parallax.height * 0.42)
+                    .blur(radius: 0.4)
+
+                LinearGradient(
+                    colors: [.clear, Color(red: 0.03, green: 0.03, blue: 0.10).opacity(0.48)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+            }
+            .frame(width: size.width, height: size.height)
+            .clipped()
+        }
+    }
+}
+
+private struct CoreEnergyField: View {
+    let size: CGSize
+
+    var body: some View {
+        Canvas { context, canvasSize in
+            for index in 0..<18 {
+                let x = CGFloat((index * 47 + 13) % 101) / 100 * canvasSize.width
+                let y = CGFloat((index * 71 + 29) % 103) / 102 * canvasSize.height
+                let diameter = CGFloat(2 + (index % 4))
+                let color = index.isMultiple(of: 3) ? SoloraTheme.gold : Color.white
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x, y: y, width: diameter, height: diameter)),
+                    with: .color(color.opacity(index.isMultiple(of: 2) ? 0.42 : 0.22))
+                )
+            }
+
+            for index in 0..<3 {
+                let inset = CGFloat(index) * 42
+                var path = Path()
+                path.move(to: CGPoint(x: -30, y: canvasSize.height * (0.28 + CGFloat(index) * 0.20)))
+                path.addCurve(
+                    to: CGPoint(x: canvasSize.width + 30, y: canvasSize.height * (0.42 + CGFloat(index) * 0.14)),
+                    control1: CGPoint(x: canvasSize.width * 0.30, y: inset),
+                    control2: CGPoint(x: canvasSize.width * 0.68, y: canvasSize.height - inset)
+                )
+                context.stroke(
+                    path,
+                    with: .linearGradient(
+                        Gradient(colors: [
+                            .clear,
+                            SoloraTheme.coral.opacity(0.22),
+                            SoloraTheme.gold.opacity(0.34),
+                            .clear
+                        ]),
+                        startPoint: .zero,
+                        endPoint: CGPoint(x: canvasSize.width, y: canvasSize.height)
+                    ),
+                    style: StrokeStyle(lineWidth: 1.2, lineCap: .round)
+                )
+            }
+        }
+        .frame(width: size.width, height: size.height)
+    }
+}
+
+private struct NightSkyBackdrop: View {
+    let parallax: CGSize
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.015, green: 0.025, blue: 0.095),
+                        Color(red: 0.055, green: 0.045, blue: 0.18),
+                        Color(red: 0.015, green: 0.02, blue: 0.07)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottomTrailing
+                )
+
+                Circle()
+                    .fill(Color(red: 0.24, green: 0.20, blue: 0.62).opacity(0.34))
+                    .frame(width: size.width * 1.18)
+                    .blur(radius: 92)
+                    .offset(x: -size.width * 0.38, y: -size.height * 0.06)
+
+                Circle()
+                    .fill(Color(red: 0.16, green: 0.54, blue: 0.72).opacity(0.18))
+                    .frame(width: size.width * 0.92)
+                    .blur(radius: 82)
+                    .offset(x: size.width * 0.38, y: size.height * 0.30)
+
+                StarField(count: 78, near: false)
+                    .offset(x: parallax.width * 0.08, y: parallax.height * 0.08)
+
+                planet(size: size.width * 0.24)
+                    .position(x: size.width * 0.86, y: size.height * 0.23)
+                    .offset(x: parallax.width * 0.22, y: parallax.height * 0.22)
+
+                moon(size: size.width * 0.11)
+                    .position(x: size.width * 0.13, y: size.height * 0.57)
+                    .offset(x: parallax.width * 0.34, y: parallax.height * 0.34)
+
+                StarField(count: 34, near: true)
+                    .offset(x: parallax.width * 0.46, y: parallax.height * 0.46)
+
+                RadialGradient(
+                    colors: [.clear, Color.black.opacity(0.56)],
+                    center: .center,
+                    startRadius: min(size.width, size.height) * 0.20,
+                    endRadius: max(size.width, size.height) * 0.72
+                )
+                .allowsHitTesting(false)
+            }
+            .frame(width: size.width, height: size.height)
+            .clipped()
+        }
+    }
+
+    private func planet(size: CGFloat) -> some View {
+        ZStack {
+            Ellipse()
+                .stroke(Color(red: 0.76, green: 0.73, blue: 1.0).opacity(0.32), lineWidth: 2)
+                .frame(width: size * 1.72, height: size * 0.42)
+                .rotationEffect(.degrees(-18))
+
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.88, green: 0.66, blue: 0.78),
+                            Color(red: 0.38, green: 0.28, blue: 0.64),
+                            Color(red: 0.08, green: 0.08, blue: 0.24)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    Circle()
+                        .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                }
+                .shadow(color: Color(red: 0.56, green: 0.46, blue: 1).opacity(0.30), radius: 24)
+                .frame(width: size, height: size)
+        }
+        .frame(width: size * 1.8, height: size * 1.2)
+    }
+
+    private func moon(size: CGFloat) -> some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [SoloraTheme.cream, SoloraTheme.gold.opacity(0.72)],
+                    center: .topLeading,
+                    startRadius: 2,
+                    endRadius: size
+                )
+            )
+            .overlay(alignment: .topTrailing) {
+                Circle()
+                    .fill(Color.black.opacity(0.12))
+                    .frame(width: size * 0.24)
+                    .offset(x: -size * 0.16, y: size * 0.18)
+            }
+            .shadow(color: SoloraTheme.cream.opacity(0.32), radius: 18)
+            .frame(width: size, height: size)
+    }
+}
+
+private struct StarField: View {
+    let count: Int
+    let near: Bool
+
+    var body: some View {
+        Canvas { context, size in
+            for index in 0..<count {
+                let x = CGFloat((index * 67 + (near ? 19 : 7)) % 101) / 100 * size.width
+                let y = CGFloat((index * 43 + (near ? 31 : 11)) % 103) / 102 * size.height
+                let diameter = near ? CGFloat(1.3 + Double(index % 4) * 0.7) : CGFloat(0.7 + Double(index % 3) * 0.45)
+                let opacity = near ? 0.42 + Double(index % 3) * 0.16 : 0.20 + Double(index % 4) * 0.10
+                let tint = index.isMultiple(of: 7) ? SoloraTheme.gold : Color.white
+                context.fill(
+                    Path(ellipseIn: CGRect(x: x, y: y, width: diameter, height: diameter)),
+                    with: .color(tint.opacity(opacity))
+                )
+
+                if near && index.isMultiple(of: 11) {
+                    var flare = Path()
+                    flare.move(to: CGPoint(x: x - 4, y: y + diameter / 2))
+                    flare.addLine(to: CGPoint(x: x + diameter + 4, y: y + diameter / 2))
+                    flare.move(to: CGPoint(x: x + diameter / 2, y: y - 4))
+                    flare.addLine(to: CGPoint(x: x + diameter / 2, y: y + diameter + 4))
+                    context.stroke(flare, with: .color(Color.white.opacity(0.32)), lineWidth: 0.7)
+                }
+            }
+        }
+    }
+}
+
+private struct CareerFridgeBackdrop: View {
+    let parallax: CGSize
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.31, green: 0.22, blue: 0.28),
+                        Color(red: 0.74, green: 0.32, blue: 0.28)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.94, green: 0.95, blue: 0.93),
+                                Color(red: 0.77, green: 0.83, blue: 0.83),
+                                Color(red: 0.91, green: 0.91, blue: 0.87)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        BrushedMetalTexture()
+                            .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .stroke(Color.white.opacity(0.72), lineWidth: 2)
+                    }
+                    .shadow(color: Color.black.opacity(0.34), radius: 24, x: 0, y: 12)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+
+                Rectangle()
+                    .fill(Color(red: 0.24, green: 0.28, blue: 0.29).opacity(0.28))
+                    .frame(height: 3)
+                    .offset(y: -size.height * 0.32)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.72), Color.black.opacity(0.22)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 14, height: size.height * 0.19)
+                    .overlay {
+                        Capsule().stroke(Color.white.opacity(0.66), lineWidth: 1)
+                    }
+                    .shadow(color: Color.black.opacity(0.24), radius: 5, x: 2, y: 3)
+                    .position(x: size.width - 28, y: size.height * 0.37)
+
+                fridgeDetails(in: size)
+                    .offset(x: parallax.width * 0.18, y: parallax.height * 0.18)
+
+                LinearGradient(
+                    colors: [Color.white.opacity(0.22), .clear, Color.black.opacity(0.08)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .allowsHitTesting(false)
+            }
+            .frame(width: size.width, height: size.height)
+            .clipped()
+        }
+    }
+
+    private func fridgeDetails(in size: CGSize) -> some View {
+        ZStack {
+            FridgePhotoMagnet()
+                .rotationEffect(.degrees(-5))
+                .position(x: size.width * 0.18, y: size.height * 0.16)
+
+            FridgeNoteMagnet(
+                title: "KEEP GOING",
+                lines: ["tiny steps", "count too"],
+                color: Color(red: 1.0, green: 0.86, blue: 0.40)
+            )
+            .rotationEffect(.degrees(4))
+            .position(x: size.width * 0.73, y: size.height * 0.16)
+
+            FridgeSticker(symbol: "sparkles", color: SoloraTheme.coral)
+                .position(x: size.width * 0.89, y: size.height * 0.51)
+
+            FridgeSticker(symbol: "bolt.fill", color: SoloraTheme.gold)
+                .position(x: size.width * 0.10, y: size.height * 0.57)
+
+            FridgeNoteMagnet(
+                title: "NEXT",
+                lines: ["make it", "memorable"],
+                color: Color(red: 0.68, green: 0.86, blue: 0.78)
+            )
+            .scaleEffect(0.86)
+            .rotationEffect(.degrees(-3))
+            .position(x: size.width * 0.83, y: size.height * 0.73)
+
+            ForEach(0..<5, id: \.self) { index in
+                Circle()
+                    .fill([SoloraTheme.coral, SoloraTheme.gold, SoloraTheme.plum][index % 3])
+                    .frame(width: 10, height: 10)
+                    .overlay { Circle().stroke(Color.white.opacity(0.62), lineWidth: 1) }
+                    .shadow(color: Color.black.opacity(0.20), radius: 2, y: 1)
+                    .position(
+                        x: size.width * (0.13 + CGFloat(index) * 0.17),
+                        y: size.height * 0.85 + CGFloat(index.isMultiple(of: 2) ? -4 : 4)
+                    )
+            }
+        }
+        .frame(width: size.width, height: size.height)
+    }
+}
+
+private struct BrushedMetalTexture: View {
+    var body: some View {
+        Canvas { context, size in
+            for index in 0..<46 {
+                let y = CGFloat(index) / 45 * size.height
+                let opacity = index.isMultiple(of: 3) ? 0.055 : 0.026
+                var path = Path()
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: size.width, y: y))
+                context.stroke(path, with: .color(Color.white.opacity(opacity)), lineWidth: 0.6)
+            }
+        }
+    }
+}
+
+private struct FridgeNoteMagnet: View {
+    let title: String
+    let lines: [String]
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .tracking(0.5)
+            ForEach(lines, id: \.self) { line in
+                Text(line)
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .opacity(0.60)
+            }
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .padding(10)
+        .frame(width: 86, height: 70, alignment: .topLeading)
+        .background(color)
+        .overlay(alignment: .top) {
+            Circle()
+                .fill(SoloraTheme.coral)
+                .frame(width: 12, height: 12)
+                .overlay { Circle().stroke(Color.white.opacity(0.68), lineWidth: 1) }
+                .shadow(color: Color.black.opacity(0.22), radius: 2, y: 1)
+                .offset(y: -6)
+        }
+        .shadow(color: Color.black.opacity(0.18), radius: 4, x: 1, y: 3)
+    }
+}
+
+private struct FridgePhotoMagnet: View {
+    var body: some View {
+        VStack(spacing: 5) {
+            ZStack {
+                LinearGradient(
+                    colors: [Color(red: 0.33, green: 0.72, blue: 0.82), SoloraTheme.cream],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                Circle()
+                    .fill(SoloraTheme.gold.opacity(0.88))
+                    .frame(width: 20)
+                    .offset(x: 20, y: -12)
+                Capsule()
+                    .fill(SoloraTheme.moss)
+                    .frame(width: 74, height: 26)
+                    .offset(x: -18, y: 25)
+                Capsule()
+                    .fill(SoloraTheme.plum.opacity(0.72))
+                    .frame(width: 74, height: 22)
+                    .offset(x: 28, y: 28)
+            }
+            .frame(width: 76, height: 58)
+            .clipped()
+
+            Text("A GOOD DAY")
+                .font(.system(size: 8, weight: .bold, design: .rounded))
+                .foregroundStyle(SoloraTheme.ink.opacity(0.64))
+        }
+        .padding(6)
+        .background(SoloraTheme.paper)
+        .shadow(color: Color.black.opacity(0.20), radius: 4, x: 1, y: 3)
+    }
+}
+
+private struct FridgeSticker: View {
+    let symbol: String
+    let color: Color
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: .black))
+            .foregroundStyle(Color.white)
+            .frame(width: 34, height: 34)
+            .background(color, in: Circle())
+            .overlay { Circle().stroke(Color.white.opacity(0.84), lineWidth: 3) }
+            .shadow(color: Color.black.opacity(0.20), radius: 3, y: 2)
     }
 }
 
@@ -373,25 +878,20 @@ private struct LoreCanvas: View {
     private func decoration(points: [CGPoint], size: CGSize) -> some View {
         switch skin {
         case .coreRoom:
-            ZStack {
-                Circle()
-                    .fill(SoloraTheme.coral.opacity(0.24))
-                    .frame(width: size.width * 0.95)
-                    .blur(radius: 56)
-                    .offset(x: size.width * 0.34, y: -size.height * 0.15)
-
-                VStack(spacing: size.height * 0.23) {
-                    ForEach(0..<3, id: \.self) { _ in
-                        Capsule()
-                            .fill(SoloraTheme.gold.opacity(0.72))
-                            .frame(width: size.width * 0.88, height: 9)
-                            .overlay(alignment: .bottom) {
-                                Capsule().fill(SoloraTheme.coral.opacity(0.60)).frame(height: 3)
-                            }
-                            .shadow(color: .black.opacity(0.32), radius: 8, y: 7)
-                    }
+            Canvas { context, _ in
+                for (index, point) in points.enumerated() {
+                    let diameter = CGFloat(112 + (index % 3) * 18)
+                    context.stroke(
+                        Path(ellipseIn: CGRect(
+                            x: point.x - diameter / 2,
+                            y: point.y - diameter / 2,
+                            width: diameter,
+                            height: diameter
+                        )),
+                        with: .color(Color.white.opacity(0.055)),
+                        lineWidth: 1
+                    )
                 }
-                .offset(y: size.height * 0.08)
             }
 
         case .constellation:
@@ -409,19 +909,25 @@ private struct LoreCanvas: View {
                     ),
                     style: StrokeStyle(lineWidth: 1.5, dash: [3, 8])
                 )
+
+                for point in points {
+                    context.fill(
+                        Path(ellipseIn: CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)),
+                        with: .color(Color.white.opacity(0.22))
+                    )
+                }
             }
 
         case .fridge:
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(SoloraTheme.cream.opacity(0.18))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 84)
-                .overlay {
-                    Rectangle()
-                        .fill(SoloraTheme.ink.opacity(0.18))
-                        .frame(width: 2)
-                        .offset(x: size.width * 0.32)
+            Canvas { context, _ in
+                for point in points {
+                    context.stroke(
+                        Path(ellipseIn: CGRect(x: point.x - 50, y: point.y - 50, width: 100, height: 100)),
+                        with: .color(SoloraTheme.ink.opacity(0.045)),
+                        lineWidth: 1
+                    )
                 }
+            }
         }
     }
 
