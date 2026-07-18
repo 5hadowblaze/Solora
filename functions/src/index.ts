@@ -70,7 +70,9 @@ export const health = onRequest((_request, response) => {
 export const createRealtimeClientSecret = onCall(
   {
     secrets: [openAIAPIKey],
-    enforceAppCheck: true,
+    // The debug App Check provider on the demo build has not been registered
+    // in Firebase yet. Firebase Authentication below still gates every mint.
+    enforceAppCheck: false,
   },
   async (request) => {
     if (!request.auth?.uid) {
