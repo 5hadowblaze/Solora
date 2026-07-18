@@ -170,9 +170,6 @@ struct MomentRow: View {
             }
 
             Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.tertiary)
         }
         .padding(14)
         .background(.white, in: RoundedRectangle(cornerRadius: 14))
