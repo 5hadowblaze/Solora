@@ -39,8 +39,8 @@ private struct SoloraOnboarding: View {
     @State private var revealSolora = false
     @State private var showSetup = false
     @State private var selectedVibe = "Warm & reflective"
-    @State private var cvReady = true
-    @State private var calendarReady = true
+    @State private var selectedVisualReference = "Inside Out orbs"
+    @State private var brandSequenceTask: Task<Void, Never>?
 
     let enter: () -> Void
 
@@ -53,23 +53,23 @@ private struct SoloraOnboarding: View {
         ZStack {
             cream.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                header
-                    .padding(.top, 20)
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                        .padding(.top, 20)
 
-                Spacer(minLength: 20)
+                    brandMoment
+                        .padding(.top, 34)
 
-                brandMoment
-
-                Spacer(minLength: 24)
-
-                if showSetup {
-                    setup
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    if showSetup {
+                        setup
+                            .padding(.top, 30)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
                 }
-
-                Spacer(minLength: showSetup ? 16 : 44)
-
+                .padding(.bottom, 96)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 Button(action: enter) {
                     HStack(spacing: 10) {
                         Text("Enter my world")
@@ -82,11 +82,13 @@ private struct SoloraOnboarding: View {
                 .buttonStyle(SoloraPrimaryButtonStyle(ink: ink, gold: gold))
                 .accessibilityHint("Opens the Solora demo")
                 .padding(.horizontal, 24)
-                .padding(.bottom, 18)
+                .padding(.vertical, 12)
+                .background(cream)
             }
         }
         .foregroundStyle(ink)
         .onAppear(perform: runBrandSequence)
+        .onDisappear { brandSequenceTask?.cancel() }
     }
 
     private var header: some View {
@@ -141,8 +143,8 @@ private struct SoloraOnboarding: View {
     }
 
     private var setup: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Set the tone")
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Make my world feel like…")
                 .font(.headline.weight(.bold))
 
             VStack(spacing: 8) {
@@ -170,53 +172,127 @@ private struct SoloraOnboarding: View {
                 }
             }
 
+            VStack(alignment: .leading, spacing: 9) {
+                Text("Visual reference")
+                    .font(.subheadline.weight(.bold))
+
+                FlowLayout(spacing: 8) {
+                    ForEach(["Inside Out orbs", "Career Fridge magnets", "Quest Map"], id: \.self) { reference in
+                        choiceChip(reference, isSelected: selectedVisualReference == reference) {
+                            selectedVisualReference = reference
+                        }
+                    }
+                }
+            }
+
             HStack(spacing: 12) {
-                sourceToggle(title: "CV", subtitle: "Demo ready", isOn: $cvReady)
-                sourceToggle(title: "Calendar", subtitle: "Demo ready", isOn: $calendarReady)
+                sourceStatus(title: "CV")
+                sourceStatus(title: "Calendar")
             }
         }
         .padding(.horizontal, 24)
     }
 
-    private func sourceToggle(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+    private func choiceChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            isOn.wrappedValue.toggle()
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18), action)
         } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(title)
-                        .font(.subheadline.weight(.bold))
-                    Spacer()
-                    Image(systemName: isOn.wrappedValue ? "checkmark.square.fill" : "square")
-                        .foregroundStyle(isOn.wrappedValue ? gold : ink.opacity(0.42))
+            HStack(spacing: 6) {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.black))
                 }
-                Text(subtitle)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(ink.opacity(0.64))
+                Text(title)
+                    .font(.caption.weight(.bold))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(ink.opacity(0.045))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(ink.opacity(0.14), lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .foregroundStyle(isSelected ? cream : ink)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background(isSelected ? ink : ink.opacity(0.06))
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(subtitle)")
-        .accessibilityValue(isOn.wrappedValue ? "Selected" : "Not selected")
+        .accessibilityLabel(title)
+        .accessibilityValue(isSelected ? "Selected" : "Not selected")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func sourceStatus(title: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.subheadline.weight(.bold))
+            Label("Demo connected", systemImage: "checkmark.circle.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(gold)
+            Text("Read-only source")
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(ink.opacity(0.64))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(ink.opacity(0.045))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(ink.opacity(0.14), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
     }
 
     private func runBrandSequence() {
+        brandSequenceTask?.cancel()
         guard !reduceMotion else {
             revealSolora = true
             showSetup = true
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.05) {
+        brandSequenceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_050_000_000)
+            guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.28)) { revealSolora = true }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.62) {
+
+            try? await Task.sleep(nanoseconds: 570_000_000)
+            guard !Task.isCancelled else { return }
             withAnimation(.easeOut(duration: 0.28)) { showSetup = true }
+        }
+    }
+}
+
+private struct FlowLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? .greatestFiniteMagnitude
+        var rowWidth: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if rowWidth > 0, rowWidth + spacing + size.width > width {
+                totalHeight += rowHeight + spacing
+                rowWidth = 0
+                rowHeight = 0
+            }
+            rowWidth += (rowWidth == 0 ? 0 : spacing) + size.width
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? rowWidth, height: totalHeight + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var point = bounds.origin
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if point.x > bounds.minX, point.x + spacing + size.width > bounds.maxX {
+                point.x = bounds.minX
+                point.y += rowHeight + spacing
+                rowHeight = 0
+            }
+            if point.x > bounds.minX { point.x += spacing }
+            subview.place(at: point, proposal: ProposedViewSize(size))
+            point.x += size.width
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }
