@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SoloraAssistantBubble: View {
     @ObservedObject var store: SoloraAssistantStore
+    @ObservedObject var realtimeSession: SoloraRealtimeSession
 
     var body: some View {
         Button(action: store.presentPanel) {
@@ -14,7 +15,7 @@ struct SoloraAssistantBubble: View {
                 )
                 .accessibilityHidden(true)
 
-                Image(systemName: "sparkles")
+                Image(systemName: realtimeSession.state == .connected ? "waveform" : "sparkles")
                     .font(.system(size: 10, weight: .black))
                     .foregroundStyle(SoloraTheme.cream)
                     .frame(width: 22, height: 22)
@@ -24,13 +25,14 @@ struct SoloraAssistantBubble: View {
             .frame(width: 72, height: 72)
         }
         .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.96))
-        .accessibilityLabel("Open Solora assistant")
-        .accessibilityHint("Opens local memory, reflection, and navigation tools")
+        .accessibilityLabel(realtimeSession.state == .connected ? "Open Solora voice companion, connected" : "Open Solora voice companion")
+        .accessibilityHint("Opens voice, local memory, reflection, and navigation tools")
     }
 }
 
 struct SoloraAssistantPanel: View {
     @ObservedObject var store: SoloraAssistantStore
+    @ObservedObject var realtimeSession: SoloraRealtimeSession
     let confirmMemoryChange: (SoloraAssistantPendingMemoryChange) -> Bool
 
     @State private var searchText = ""
@@ -45,6 +47,7 @@ struct SoloraAssistantPanel: View {
                     search
                     searchResults
                     confirmation
+                    creationConfirmation
                 }
                 .padding(20)
                 .padding(.bottom, 24)
@@ -77,12 +80,59 @@ struct SoloraAssistantPanel: View {
     }
 
     private var availability: some View {
-        Label("Voice connection coming next. Local tools only for now.", systemImage: "waveform.slash")
+        VStack(alignment: .leading, spacing: 12) {
+            Label(
+                realtimeSession.state.title,
+                systemImage: realtimeSession.state == .connected ? "waveform" : "waveform.badge.mic"
+            )
             .font(.footnote.weight(.semibold))
-            .foregroundStyle(SoloraTheme.ink.opacity(0.66))
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(SoloraTheme.gold.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
+
+            if realtimeSession.state.isActive {
+                HStack(spacing: 10) {
+                    Button {
+                        realtimeSession.toggleMute()
+                    } label: {
+                        Label(realtimeSession.isMuted ? "Unmute" : "Mute", systemImage: realtimeSession.isMuted ? "mic.slash.fill" : "mic.fill")
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(realtimeSession.state != .connected)
+                    .accessibilityLabel(realtimeSession.isMuted ? "Unmute microphone" : "Mute microphone")
+
+                    Button(role: .destructive) {
+                        realtimeSession.end()
+                    } label: {
+                        Label("End", systemImage: "phone.down.fill")
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("End Solora voice session")
+                }
+            } else {
+                Button {
+                    realtimeSession.start()
+                } label: {
+                    Label(
+                        isFailure ? "Retry voice" : "Talk with Solora",
+                        systemImage: "mic.fill"
+                    )
+                    .font(.headline.weight(.bold))
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(SoloraTheme.ink)
+                .accessibilityHint("Requests microphone access and starts a secure live voice session")
+            }
+        }
+        .foregroundStyle(SoloraTheme.ink.opacity(0.72))
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SoloraTheme.gold.opacity(0.13), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var isFailure: Bool {
+        if case .failed = realtimeSession.state { return true }
+        return false
     }
 
     private var localActions: some View {
@@ -168,6 +218,31 @@ struct SoloraAssistantPanel: View {
                     .frame(maxWidth: .infinity, minHeight: 48)
                     .buttonStyle(.borderedProminent)
                     .tint(SoloraTheme.ink)
+                }
+            }
+            .padding(16)
+            .background(SoloraTheme.lavender.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+            .soloraHairline(SoloraTheme.lavender.opacity(0.34), radius: 16)
+        }
+    }
+
+    @ViewBuilder
+    private var creationConfirmation: some View {
+        if let pending = store.pendingCreationFlow {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Open creation flow?")
+                    .font(.headline.weight(.bold))
+                Text("Solora wants to open the \(pending.kind.title) flow\(pending.target.map { " for \($0)" } ?? ""). Nothing will be created or shared until you continue there.")
+                    .font(.subheadline)
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.64))
+                HStack(spacing: 10) {
+                    Button("Cancel", role: .cancel) { store.cancelPendingCreationFlow() }
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .buttonStyle(.bordered)
+                    Button("Open Share") { store.confirmPendingCreationFlow() }
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .buttonStyle(.borderedProminent)
+                        .tint(SoloraTheme.ink)
                 }
             }
             .padding(16)

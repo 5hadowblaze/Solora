@@ -68,7 +68,7 @@ struct RootTabView: View {
         .tint(SoloraTheme.coral)
         .overlay(alignment: .bottomTrailing) {
             if assistantStore.canShowRootBubble {
-                SoloraAssistantBubble(store: assistantStore)
+                SoloraAssistantBubble(store: assistantStore, realtimeSession: assistantStore.realtimeSession)
                     .padding(.trailing, 14)
                     .padding(.bottom, 70)
                     .transition(reduceMotion ? .opacity : .soloraReveal)
@@ -77,6 +77,9 @@ struct RootTabView: View {
         .animation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive, value: assistantStore.canShowRootBubble)
         .task(id: authenticatedUser.id) {
             momentStore.start()
+        }
+        .onDisappear {
+            assistantStore.realtimeSession.end()
         }
         .onChange(of: momentStore.moments, initial: true) { _, moments in
             assistantStore.replaceMemories(moments)
@@ -101,6 +104,7 @@ struct RootTabView: View {
         )) {
             SoloraAssistantPanel(
                 store: assistantStore,
+                realtimeSession: assistantStore.realtimeSession,
                 confirmMemoryChange: confirmAssistantMemoryChange
             )
         }

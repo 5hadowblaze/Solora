@@ -14,13 +14,15 @@
 		261FF9254D5F1109DF58E0A9 /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA8B6D374E99AA4FBEA23FF4 /* DemoFixtures.swift */; };
 		2B064AD489CEA395E04A7F2C /* AuthenticatedUser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFECD69EF92B8B14E899A6F9 /* AuthenticatedUser.swift */; };
 		2D915F7DB9507633AE6E3810 /* WorldKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEBDABE84210833189CE7553 /* WorldKind.swift */; };
+		44ED1473DB55D998BB9DD6E7 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 002A5399B3EAC569BEE0C720 /* WebRTC */; };
 		472C7D084CE2661936E9CB3B /* WorldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC42E62749D6DECDB78E8C6 /* WorldView.swift */; };
-		49AE52808434FBA49ECF3068 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A7498CE393EABC550BBD3558 /* FirebaseFunctions */; };
-		5035CDB55A1BF9D8E21640A8 /* FirebaseMomentMediaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A78E6686461624839D672F /* FirebaseMomentMediaRepository.swift */; };
+		49AE52808434FBA49ECF3068 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 822D9C19533F26B708791FA3 /* FirebaseStorage */; };
 		500741558FE3C42F8DA1E047 /* SoloraAssistantShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = C18FA0931B35B6683CF90968 /* SoloraAssistantShell.swift */; };
+		5035CDB55A1BF9D8E21640A8 /* FirebaseMomentMediaRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A78E6686461624839D672F /* FirebaseMomentMediaRepository.swift */; };
 		50865C846221C7A9ADBBDD60 /* ArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DE87453DBD6D36FD2892EC /* ArchiveView.swift */; };
 		50C32128838F60DAC4C03263 /* GoogleCalendarClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D67492A4152DEC121EA58987 /* GoogleCalendarClient.swift */; };
 		53962D28483C0A48D708A1C3 /* ChatGPTCareerMemoryImportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCDDE3390A235F59AE5DDA5A /* ChatGPTCareerMemoryImportTests.swift */; };
+		54DC672A74EBEBE58C9AA01D /* SoloraRealtimeToolCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2707085C8F127449E1C9574 /* SoloraRealtimeToolCodecTests.swift */; };
 		5D45A6FC30D6CF297ED73188 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = F7CB4226E96220F9CE318020 /* FirebaseAppCheck */; };
 		5EAF9C31BAF1988A090B8FF6 /* AuthenticationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CE8C4214E434483AFB13A1 /* AuthenticationSession.swift */; };
 		616DFBFB4A97EE047DEF9A74 /* OnboardingComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8194DB400E99BF042A3C12 /* OnboardingComponents.swift */; };
@@ -29,6 +31,7 @@
 		71CCAF0A00478E282C253842 /* YouView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D24C661086A2FD99CAEB673 /* YouView.swift */; };
 		75BA814C5587AE18C25CEC49 /* ChatGPTCareerMemoryImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = E240581BFCE599C3D0BB5E8C /* ChatGPTCareerMemoryImport.swift */; };
 		7643D767B1AD35A7B71CAB22 /* FirebaseCVRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 424C5A000A576B5EF3D7C08F /* FirebaseCVRepository.swift */; };
+		76C0FE6CCC94F5294C8BD384 /* SoloraRealtimeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59532F9969BA11A89EABE068 /* SoloraRealtimeSession.swift */; };
 		7AFD4A894D0BBF59B34267DF /* SoloraTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */; };
 		83B7EB1E06BE24594B2F061D /* OnboardingLearningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C2831E2B893C150A7E97FA /* OnboardingLearningView.swift */; };
 		890E80C5EB817F7BDBAD70CF /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE08EAD9F547FCEC5D62CDA7 /* AuthenticationView.swift */; };
@@ -42,7 +45,7 @@
 		C11C928B3D22B2171DD95DD8 /* SoloraMomentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */; };
 		C3015A57471B3149A1DB4129 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */; };
 		C4EF8BB028F12DF768DF0A8B /* CalendarIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AAE5C08D3F8FCC03B2D54F4 /* CalendarIntegrationTests.swift */; };
-		C5DEE6C1FACAA568D793DECA /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 34358F659ECEB6DB1D32EF88 /* GoogleSignInSwift */; };
+		C5DEE6C1FACAA568D793DECA /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 82D350F44EEA5889F70DCC08 /* GoogleSignIn */; };
 		C7E8E522332A851C969074FB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7C57C4994D9BCA8D5C954C30 /* GoogleService-Info.plist */; };
 		CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */; };
 		CFE5BE27D03272818812E71D /* FirebaseMomentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BCA1DA933ACC9AFC131DF2 /* FirebaseMomentRepository.swift */; };
@@ -56,8 +59,8 @@
 		F2AF5F89A9ABC3B260D2DDC5 /* MasterCV.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10ED9CD96663627FE933DE57 /* MasterCV.swift */; };
 		F2B04A30F4B0519E286A9536 /* CreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F935C77084A31476F0C5C29 /* CreateView.swift */; };
 		F4D2DAED918D1820882FFA0E /* OnboardingModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F85AB2B2694DA1E34816D0CC /* OnboardingModels.swift */; };
-		F780713311E43555715B2213 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 82D350F44EEA5889F70DCC08 /* GoogleSignIn */; };
-		F8DC6C67044739C37560B172 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 822D9C19533F26B708791FA3 /* FirebaseStorage */; };
+		F780713311E43555715B2213 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A7498CE393EABC550BBD3558 /* FirebaseFunctions */; };
+		F8DC6C67044739C37560B172 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 34358F659ECEB6DB1D32EF88 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -85,6 +88,7 @@
 		424C5A000A576B5EF3D7C08F /* FirebaseCVRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseCVRepository.swift; sourceTree = "<group>"; };
 		48DE87453DBD6D36FD2892EC /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		55A56707C1767362464B68AB /* CalendarSourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarSourceStore.swift; sourceTree = "<group>"; };
+		59532F9969BA11A89EABE068 /* SoloraRealtimeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraRealtimeSession.swift; sourceTree = "<group>"; };
 		5B9A0CB26EAE77BC906C7B5D /* SoloraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraApp.swift; sourceTree = "<group>"; };
 		60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		6750D3FADB198BAFBAAA83FB /* Solora.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Solora.entitlements; sourceTree = "<group>"; };
@@ -115,6 +119,7 @@
 		E240581BFCE599C3D0BB5E8C /* ChatGPTCareerMemoryImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGPTCareerMemoryImport.swift; sourceTree = "<group>"; };
 		E4BD6038040C6F06468E8CF0 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		E7C2831E2B893C150A7E97FA /* OnboardingLearningView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLearningView.swift; sourceTree = "<group>"; };
+		F2707085C8F127449E1C9574 /* SoloraRealtimeToolCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraRealtimeToolCodecTests.swift; sourceTree = "<group>"; };
 		F85AB2B2694DA1E34816D0CC /* OnboardingModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingModels.swift; sourceTree = "<group>"; };
 		FAC42E62749D6DECDB78E8C6 /* WorldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldView.swift; sourceTree = "<group>"; };
 		FE08EAD9F547FCEC5D62CDA7 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
@@ -129,10 +134,11 @@
 				5D45A6FC30D6CF297ED73188 /* FirebaseAppCheck in Frameworks */,
 				13E94F334F62BEFE8A920435 /* FirebaseAuth in Frameworks */,
 				F2758B84D220ECCAC3130418 /* FirebaseFirestore in Frameworks */,
-				49AE52808434FBA49ECF3068 /* FirebaseFunctions in Frameworks */,
-				F8DC6C67044739C37560B172 /* FirebaseStorage in Frameworks */,
-				F780713311E43555715B2213 /* GoogleSignIn in Frameworks */,
-				C5DEE6C1FACAA568D793DECA /* GoogleSignInSwift in Frameworks */,
+				49AE52808434FBA49ECF3068 /* FirebaseStorage in Frameworks */,
+				F780713311E43555715B2213 /* FirebaseFunctions in Frameworks */,
+				C5DEE6C1FACAA568D793DECA /* GoogleSignIn in Frameworks */,
+				F8DC6C67044739C37560B172 /* GoogleSignInSwift in Frameworks */,
+				44ED1473DB55D998BB9DD6E7 /* WebRTC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +151,7 @@
 				C18FA0931B35B6683CF90968 /* SoloraAssistantShell.swift */,
 				A104A207C456C7D67EB1211A /* SoloraAssistantStore.swift */,
 				0D064CBDD0AAE7EB1352A842 /* SoloraAssistantTools.swift */,
+				59532F9969BA11A89EABE068 /* SoloraRealtimeSession.swift */,
 			);
 			path = Assistant;
 			sourceTree = "<group>";
@@ -155,6 +162,7 @@
 				9AAE5C08D3F8FCC03B2D54F4 /* CalendarIntegrationTests.swift */,
 				DCDDE3390A235F59AE5DDA5A /* ChatGPTCareerMemoryImportTests.swift */,
 				AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */,
+				F2707085C8F127449E1C9574 /* SoloraRealtimeToolCodecTests.swift */,
 			);
 			path = SoloraTests;
 			sourceTree = "<group>";
@@ -313,6 +321,7 @@
 				A7498CE393EABC550BBD3558 /* FirebaseFunctions */,
 				82D350F44EEA5889F70DCC08 /* GoogleSignIn */,
 				34358F659ECEB6DB1D32EF88 /* GoogleSignInSwift */,
+				002A5399B3EAC569BEE0C720 /* WebRTC */,
 			);
 			productName = Solora;
 			productReference = D69C8F781E7E22B97E3F1B0F /* Solora.app */;
@@ -367,6 +376,7 @@
 			packageReferences = (
 				866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				983508579537B41A340A57AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				2FFBD73D19791F694DA74497 /* XCRemoteSwiftPackageReference "WebRTC" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 467F26D3274DD3106BF830EC /* Products */;
@@ -428,6 +438,7 @@
 				EEDB14F440A42482100A55D0 /* SoloraMotion.swift in Sources */,
 				10AF6111817888C6DF5FC156 /* SoloraOnboarding.swift in Sources */,
 				CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */,
+				76C0FE6CCC94F5294C8BD384 /* SoloraRealtimeSession.swift in Sources */,
 				7AFD4A894D0BBF59B34267DF /* SoloraTheme.swift in Sources */,
 				66DE158895AEDB88F84610F8 /* TodayView.swift in Sources */,
 				2D915F7DB9507633AE6E3810 /* WorldKind.swift in Sources */,
@@ -444,6 +455,7 @@
 				C4EF8BB028F12DF768DF0A8B /* CalendarIntegrationTests.swift in Sources */,
 				53962D28483C0A48D708A1C3 /* ChatGPTCareerMemoryImportTests.swift in Sources */,
 				C11C928B3D22B2171DD95DD8 /* SoloraMomentTests.swift in Sources */,
+				54DC672A74EBEBE58C9AA01D /* SoloraRealtimeToolCodecTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -690,6 +702,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		2FFBD73D19791F694DA74497 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = exactVersion;
+				version = 150.0.0;
+			};
+		};
 		866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
@@ -709,10 +729,20 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		002A5399B3EAC569BEE0C720 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2FFBD73D19791F694DA74497 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
 		34358F659ECEB6DB1D32EF88 /* GoogleSignInSwift */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 983508579537B41A340A57AF /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		822D9C19533F26B708791FA3 /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
 		};
 		82D350F44EEA5889F70DCC08 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -723,11 +753,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
-		};
-		822D9C19533F26B708791FA3 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 866430B24AC2A1F61798161C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
 		};
 		A7498CE393EABC550BBD3558 /* FirebaseFunctions */ = {
 			isa = XCSwiftPackageProductDependency;
