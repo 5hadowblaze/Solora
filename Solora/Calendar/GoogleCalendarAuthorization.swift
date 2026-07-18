@@ -78,6 +78,14 @@ final class GoogleCalendarAuthorization {
                 authorisedUser = result.user
             } catch let error as GIDSignInError where error.code == .canceled {
                 throw GoogleCalendarAuthorizationError.cancelled
+            } catch let error as GIDSignInError where error.code == .scopesAlreadyGranted {
+                // Google can return this when its cached user has not yet reflected a
+                // scope granted moments earlier. Restore the account before treating it
+                // as a failed calendar connection.
+                guard let restored = try await restoredUser() else {
+                    throw GoogleCalendarAuthorizationError.permissionRequired
+                }
+                authorisedUser = restored
             } catch {
                 throw GoogleCalendarAuthorizationError.authorizationFailed
             }
