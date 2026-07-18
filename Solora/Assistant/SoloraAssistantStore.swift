@@ -11,13 +11,19 @@ final class SoloraAssistantStore: ObservableObject {
     @Published private(set) var activeReflection: SoloraAssistantReflectionSession?
     @Published private(set) var preparedDraft: SoloraAssistantMemoryDraft?
     @Published private(set) var pendingMemoryChange: SoloraAssistantPendingMemoryChange?
+    @Published private(set) var pendingCreationFlow: SoloraAssistantPendingCreationFlow?
     @Published private(set) var requestedSurface: SoloraAppSurface?
     @Published private(set) var statusMessage = "Local tools are ready. Voice connection is coming next."
 
     let toolRegistry: any SoloraAssistantToolRegistry
+    let realtimeSession: SoloraRealtimeSession
 
     init(toolRegistry: any SoloraAssistantToolRegistry = LocalSoloraAssistantToolRegistry()) {
         self.toolRegistry = toolRegistry
+        realtimeSession = SoloraRealtimeSession(toolDescriptors: toolRegistry.descriptors)
+        realtimeSession.toolHandler = { [weak self] call in
+            self?.executeToolCall(call) ?? .unavailable("That Solora tool is not available right now.")
+        }
     }
 
     var canShowRootBubble: Bool {
@@ -77,6 +83,13 @@ final class SoloraAssistantStore: ObservableObject {
         apply(toolRegistry.execute(call))
     }
 
+    @discardableResult
+    func executeToolCall(_ call: SoloraAssistantToolCall) -> SoloraAssistantToolResult {
+        let result = toolRegistry.execute(call)
+        apply(result)
+        return result
+    }
+
     func consumeNavigationRequest() {
         requestedSurface = nil
     }
@@ -96,6 +109,19 @@ final class SoloraAssistantStore: ObservableObject {
         } else {
             statusMessage = "That memory could not be saved. Review it and try again."
         }
+    }
+
+    func cancelPendingCreationFlow() {
+        pendingCreationFlow = nil
+        statusMessage = "The creation flow was not opened."
+    }
+
+    func confirmPendingCreationFlow() {
+        guard let pendingCreationFlow else { return }
+        self.pendingCreationFlow = nil
+        requestedSurface = .share
+        isPanelPresented = false
+        statusMessage = "Opening the \(pendingCreationFlow.kind.title) flow after your confirmation."
     }
 
     private func apply(_ result: SoloraAssistantToolResult) {
@@ -118,6 +144,9 @@ final class SoloraAssistantStore: ObservableObject {
         case .navigationRequested(let surface):
             requestedSurface = surface
             isPanelPresented = false
+        case .creationFlowConfirmationRequired(let pending):
+            pendingCreationFlow = pending
+            statusMessage = "Confirm before Solora opens a creation or sharing flow."
         case .unavailable(let message):
             statusMessage = message
         }

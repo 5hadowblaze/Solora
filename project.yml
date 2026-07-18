@@ -14,6 +14,9 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS.git
     exactVersion: 9.2.0
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    exactVersion: 150.0.0
 targets:
   Solora:
     type: application
@@ -28,6 +31,7 @@ targets:
       path: Solora/Resources/Info.plist
       properties:
         CFBundleDisplayName: Solora
+        NSMicrophoneUsageDescription: Talk with Solora using your voice.
         UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor
@@ -58,6 +62,8 @@ targets:
         product: GoogleSignIn
       - package: GoogleSignIn
         product: GoogleSignInSwift
+      - package: WebRTC
+        product: WebRTC
   SoloraTests:
     type: bundle.unit-test
     platform: iOS
@@ -80,3 +86,7 @@ schemes:
     test:
       targets:
         - SoloraTests
+    run:
+      config: Debug
+      environmentVariables:
+        AppCheckDebugToken: "$(APP_CHECK_DEBUG_TOKEN)"

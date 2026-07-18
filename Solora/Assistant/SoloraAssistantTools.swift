@@ -25,6 +25,30 @@ enum SoloraAssistantChildPresentation: String, Codable, Sendable {
     case deckPreview
 }
 
+enum SoloraAssistantCreationKind: String, CaseIterable, Codable, Sendable {
+    case story
+    case post
+    case cv
+    case interview
+    case deck
+
+    var title: String {
+        switch self {
+        case .story: "story"
+        case .post: "post"
+        case .cv: "CV"
+        case .interview: "interview talking points"
+        case .deck: "deck"
+        }
+    }
+}
+
+struct SoloraAssistantPendingCreationFlow: Codable, Equatable, Identifiable, Sendable {
+    let id: String
+    let kind: SoloraAssistantCreationKind
+    let target: String?
+}
+
 struct SoloraAssistantMemorySummary: Codable, Equatable, Identifiable, Sendable {
     let id: String
     let title: String
@@ -99,6 +123,7 @@ enum SoloraAssistantToolCall: Codable, Equatable, Sendable {
     case beginReflection(context: String)
     case continueReflection(sessionID: String, note: String)
     case navigate(surface: SoloraAppSurface, userRequested: Bool)
+    case requestCreationFlowConfirmation(kind: SoloraAssistantCreationKind, target: String?)
 }
 
 enum SoloraAssistantToolResult: Equatable, Sendable {
@@ -108,6 +133,7 @@ enum SoloraAssistantToolResult: Equatable, Sendable {
     case confirmationRequired(SoloraAssistantPendingMemoryChange)
     case reflection(SoloraAssistantReflectionSession)
     case navigationRequested(SoloraAppSurface)
+    case creationFlowConfirmationRequired(SoloraAssistantPendingCreationFlow)
     case unavailable(String)
 }
 
@@ -178,7 +204,8 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
             description: "Ask the user to review and confirm a prepared creation or update. This tool never writes by itself.",
             fields: [
                 .init(name: "draftID", type: .string, required: true, description: "A draft identifier returned by prepare_memory_draft."),
-                .init(name: "change", type: .enumeration, required: true, description: "Create, or update with an existing memory identifier.")
+                .init(name: "change", type: .enumeration, required: true, description: "Create, or update with an existing memory identifier."),
+                .init(name: "memoryID", type: .string, required: false, description: "Required only for an update; use an identifier returned by memory search.")
             ],
             requiresUserConfirmation: true
         ),
@@ -207,6 +234,15 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
                 .init(name: "userRequested", type: .boolean, required: true, description: "Must be true for navigation to occur.")
             ],
             requiresUserConfirmation: false
+        ),
+        .init(
+            name: "request_creation_flow_confirmation",
+            description: "Ask the user to confirm before opening a Solora creation/share flow. This tool never creates or shares output by itself.",
+            fields: [
+                .init(name: "kind", type: .enumeration, required: true, description: "Story, post, cv, interview, or deck."),
+                .init(name: "target", type: .string, required: false, description: "Optional role, audience, or occasion supplied by the user.")
+            ],
+            requiresUserConfirmation: true
         )
     ]
 
@@ -297,6 +333,16 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
                 return .unavailable("Solora only navigates when the user asks it to.")
             }
             return .navigationRequested(surface)
+
+        case .requestCreationFlowConfirmation(let kind, let target):
+            let cleanTarget = target?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .prefix(200)
+            return .creationFlowConfirmationRequired(.init(
+                id: UUID().uuidString,
+                kind: kind,
+                target: cleanTarget.map(String.init).flatMap { $0.isEmpty ? nil : $0 }
+            ))
         }
     }
 
