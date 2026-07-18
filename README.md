@@ -20,3 +20,20 @@ solora makes reflection feel more like collecting constellations than filling in
 - **your world, your style** — tune your vibe, sources, and world so solora feels like an extension of you.
 
 every interaction is built around soft glass, luminous colour, and satisfying motion: memories condense into orbs, orbit together, and unfold into new possibilities. solora is where your lore, your aura, and your future start to connect.
+
+## stack
+
+- **native iOS:** Swift, SwiftUI, PhotosUI, and UIKit image processing
+- **design:** custom glass-orb components, spatial layouts, and motion built in SwiftUI
+- **identity & data:** Firebase Authentication, Cloud Firestore, Firebase Storage, and Firebase App Check
+- **connections:** Google Sign-In and Google Calendar
+- **career intelligence:** a user-led ChatGPT memory-import flow that keeps people in control of what becomes part of their lore
+- **project tooling:** Xcode and Swift Package Manager
+
+## run solora
+
+1. Open [Solora.xcodeproj](Solora.xcodeproj) in Xcode.
+2. Let Swift Package Manager resolve the project packages.
+3. Select the `Solora` scheme, choose an iOS simulator or connected iPhone, and press Run.
+
+The app launches into the Solora experience, ready to sign in, capture a memory, and explore its world.
