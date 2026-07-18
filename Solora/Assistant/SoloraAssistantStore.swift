@@ -13,6 +13,7 @@ final class SoloraAssistantStore: ObservableObject {
     @Published private(set) var pendingMemoryChange: SoloraAssistantPendingMemoryChange?
     @Published private(set) var pendingCreationFlow: SoloraAssistantPendingCreationFlow?
     @Published private(set) var requestedSurface: SoloraAppSurface?
+    @Published private(set) var requestedMemoryID: String?
     @Published private(set) var statusMessage = "Local tools are ready. Voice connection is coming next."
 
     let toolRegistry: any SoloraAssistantToolRegistry
@@ -94,6 +95,10 @@ final class SoloraAssistantStore: ObservableObject {
         requestedSurface = nil
     }
 
+    func consumeMemoryOpenRequest() {
+        requestedMemoryID = nil
+    }
+
     func cancelPendingMemoryChange() {
         pendingMemoryChange = nil
         statusMessage = "The draft was not saved."
@@ -132,6 +137,12 @@ final class SoloraAssistantStore: ObservableObject {
         case .memorySummary(let summary):
             searchResults = [summary]
             statusMessage = "Opened a local memory summary."
+        case .memoryOpened(let summary):
+            searchResults = [summary]
+            requestedSurface = .lore
+            requestedMemoryID = summary.id
+            isPanelPresented = false
+            statusMessage = "Opening \(summary.title) in your lore."
         case .draftPrepared(let draft):
             preparedDraft = draft
             statusMessage = "Draft prepared locally. It has not been saved."

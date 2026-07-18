@@ -36,6 +36,13 @@ struct SoloraRealtimeToolCodecTests {
         #expect(pending.target == "Portfolio review")
     }
 
+    @Test func decodesMemoryOpenTool() {
+        #expect(SoloraRealtimeToolCodec.decodeToolCall(
+            name: "open_memory_detail",
+            arguments: #"{"memoryID":"clarity"}"#
+        ) == .openMemoryDetail(memoryID: "clarity"))
+    }
+
     @Test func memoryWriteToolOnlyReturnsPendingConfirmation() {
         let registry = LocalSoloraAssistantToolRegistry()
         let prepared = registry.execute(.prepareMemoryDraft(

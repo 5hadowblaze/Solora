@@ -5,6 +5,7 @@ struct WorldView: View {
     let moments: [SoloraMoment]
     let vibe: String
     let visualReference: String
+    let focusMemoryID: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var memoryNamespace
@@ -21,18 +22,26 @@ struct WorldView: View {
         manifest: WorldManifest,
         moments: [SoloraMoment] = DemoFixtures.moments,
         vibe: String = "thoughtful",
-        visualReference: String = "Inside Out orbs"
+        visualReference: String = "Inside Out orbs",
+        focusMemoryID: String? = nil
     ) {
         self.manifest = manifest
         self.moments = moments
         self.vibe = vibe
         self.visualReference = visualReference
+        self.focusMemoryID = focusMemoryID
         _skin = State(initialValue: LoreSkin.initial(for: visualReference))
         _selectedID = State(initialValue: moments.first?.id)
     }
 
     private var displayedMoments: [SoloraMoment] {
-        Array(moments.prefix(6))
+        var displayed = Array(moments.prefix(6))
+        if let focusMemoryID,
+           let focused = moments.first(where: { $0.id == focusMemoryID }),
+           !displayed.contains(where: { $0.id == focused.id }) {
+            displayed = [focused] + displayed.dropLast()
+        }
+        return displayed
     }
 
     private var selectedMoment: SoloraMoment? {
@@ -92,6 +101,11 @@ struct WorldView: View {
             .sensoryFeedback(.selection, trigger: selectedID)
             .sensoryFeedback(.selection, trigger: skin)
             .sensoryFeedback(.impact(weight: .light), trigger: arrangement)
+            .onChange(of: focusMemoryID, initial: true) { _, identifier in
+                guard let identifier,
+                      let moment = displayedMoments.first(where: { $0.id == identifier }) else { return }
+                openDetail(moment)
+            }
         }
     }
 

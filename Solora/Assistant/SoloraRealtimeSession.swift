@@ -484,6 +484,9 @@ enum SoloraRealtimeToolCodec {
         case "read_memory_summary":
             guard let memoryID = values["memoryID"] as? String else { return nil }
             return .readMemorySummary(memoryID: memoryID)
+        case "open_memory_detail":
+            guard let memoryID = values["memoryID"] as? String else { return nil }
+            return .openMemoryDetail(memoryID: memoryID)
         case "prepare_memory_draft":
             guard let title = values["title"] as? String,
                   let summary = values["summary"] as? String,
@@ -531,6 +534,8 @@ enum SoloraRealtimeToolCodec {
             object = ["status": "ok", "memories": summaries.map(memoryObject)]
         case .memorySummary(let summary):
             object = ["status": "ok", "memory": memoryObject(summary)]
+        case .memoryOpened(let summary):
+            object = ["status": "opened", "memory": memoryObject(summary)]
         case .draftPrepared(let draft):
             object = ["status": "draft_prepared", "draft_id": draft.id, "title": draft.title]
         case .confirmationRequired(let pending):

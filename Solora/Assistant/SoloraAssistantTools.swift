@@ -118,6 +118,7 @@ struct SoloraAssistantReflectionSession: Codable, Equatable, Identifiable, Senda
 enum SoloraAssistantToolCall: Codable, Equatable, Sendable {
     case searchMemorySummaries(query: String, limit: Int)
     case readMemorySummary(memoryID: String)
+    case openMemoryDetail(memoryID: String)
     case prepareMemoryDraft(title: String, summary: String, occurredAt: Date, category: String?)
     case requestMemoryChangeConfirmation(draftID: String, change: SoloraAssistantMemoryChange)
     case beginReflection(context: String)
@@ -129,6 +130,7 @@ enum SoloraAssistantToolCall: Codable, Equatable, Sendable {
 enum SoloraAssistantToolResult: Equatable, Sendable {
     case memorySummaries([SoloraAssistantMemorySummary])
     case memorySummary(SoloraAssistantMemorySummary)
+    case memoryOpened(SoloraAssistantMemorySummary)
     case draftPrepared(SoloraAssistantMemoryDraft)
     case confirmationRequired(SoloraAssistantPendingMemoryChange)
     case reflection(SoloraAssistantReflectionSession)
@@ -183,6 +185,14 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
         .init(
             name: "read_memory_summary",
             description: "Read one local memory summary by its Solora identifier.",
+            fields: [
+                .init(name: "memoryID", type: .string, required: true, description: "An identifier returned by memory search.")
+            ],
+            requiresUserConfirmation: false
+        ),
+        .init(
+            name: "open_memory_detail",
+            description: "Open a specific memory in the user's Solora lore after they explicitly ask to see it. Use an identifier returned by memory search.",
             fields: [
                 .init(name: "memoryID", type: .string, required: true, description: "An identifier returned by memory search.")
             ],
@@ -272,6 +282,12 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
                 return .unavailable("That memory is not available in the current local archive.")
             }
             return .memorySummary(memory)
+
+        case .openMemoryDetail(let memoryID):
+            guard let memory = memories.first(where: { $0.id == memoryID }) else {
+                return .unavailable("That memory is not available in the current local archive.")
+            }
+            return .memoryOpened(memory)
 
         case .prepareMemoryDraft(let title, let summary, let occurredAt, let category):
             let draft = SoloraAssistantMemoryDraft(

@@ -12,6 +12,7 @@ struct RootTabView: View {
     @StateObject private var momentStore: MomentStore
     @StateObject private var assistantStore: SoloraAssistantStore
     @State private var selection: SoloraAppSurface
+    @State private var focusedMemoryID: String?
 
     init(
         container: AppContainer,
@@ -47,7 +48,8 @@ struct RootTabView: View {
                 manifest: container.worldManifest,
                 moments: momentStore.moments,
                 vibe: vibe,
-                visualReference: visualReference
+                visualReference: visualReference,
+                focusMemoryID: focusedMemoryID
             )
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
             .tag(SoloraAppSurface.lore)
@@ -90,6 +92,12 @@ struct RootTabView: View {
             guard let requestedSurface else { return }
             selection = requestedSurface
             assistantStore.consumeNavigationRequest()
+        }
+        .onChange(of: assistantStore.requestedMemoryID) { _, requestedMemoryID in
+            guard let requestedMemoryID else { return }
+            selection = .lore
+            focusedMemoryID = requestedMemoryID
+            assistantStore.consumeMemoryOpenRequest()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             assistantStore.setKeyboardVisible(true)
