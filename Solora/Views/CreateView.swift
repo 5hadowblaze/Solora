@@ -42,7 +42,10 @@ struct CreateView: View {
             .navigationTitle("Create")
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onDisappear { evidenceTask?.cancel() }
+        .onDisappear {
+            evidenceTask?.cancel()
+            if case .finding = phase { phase = .ready }
+        }
     }
 
     private var header: some View {
@@ -113,7 +116,7 @@ struct CreateView: View {
     private var deliverables: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Open your tailored materials").font(.title3.weight(.bold)).foregroundStyle(SoloraTheme.ink)
-            Button { selectPreview(.cv) } label: { DeliverableRow(icon: "doc.richtext", title: "Tailored CV", detail: "(chosenMemories.count) evidence-led role-ready bullets", trailing: true) }.buttonStyle(.plain)
+            Button { selectPreview(.cv) } label: { DeliverableRow(icon: "doc.richtext", title: "Tailored CV", detail: "\(chosenMemories.count) evidence-led role-ready bullets", trailing: true) }.buttonStyle(.plain)
             Button { selectPreview(.interview) } label: { DeliverableRow(icon: "quote.bubble", title: "Interview talking points", detail: "Concise STAR stories from your selected memories", trailing: true) }.buttonStyle(.plain)
             Button { selectPreview(.presentation) } label: { DeliverableRow(icon: "rectangle.on.rectangle.angled", title: "Presentation", detail: "Demo preview · 5 slides that connect your story", trailing: true) }.buttonStyle(.plain)
         }

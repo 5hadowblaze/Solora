@@ -1,6 +1,17 @@
 import SwiftUI
 
 struct YouView: View {
+    let vibe: String
+    let visualReference: String
+
+    init(
+        vibe: String = "Warm & reflective",
+        visualReference: String = "Inside Out orbs"
+    ) {
+        self.vibe = vibe
+        self.visualReference = visualReference
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -16,7 +27,7 @@ struct YouView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Amir")
                                     .font(.system(.title, design: .rounded, weight: .bold))
-                                Text("Playful & curious")
+                                Text(vibe)
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -30,9 +41,9 @@ struct YouView: View {
                         settingsSection("Your Solora") {
                             Label("Private by default", systemImage: "lock.fill")
                             Divider()
-                            Label("World style: Memory Shelves", systemImage: "square.grid.2x2.fill")
+                            Label("World style: \(worldStyle)", systemImage: "square.grid.2x2.fill")
                             Divider()
-                            Label("Vibe: Playful & curious", systemImage: "paintpalette.fill")
+                            Label("Vibe: \(vibe)", systemImage: "paintpalette.fill")
                         }
 
                         Text("Your memories stay yours. Solora only creates from the moments you choose.")
@@ -46,6 +57,12 @@ struct YouView: View {
             .navigationTitle("You")
             .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private var worldStyle: String {
+        if visualReference.localizedCaseInsensitiveContains("fridge") { return "Career Fridge" }
+        if visualReference.localizedCaseInsensitiveContains("map") { return "Quest Map" }
+        return "Memory Shelves"
     }
 
     private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {

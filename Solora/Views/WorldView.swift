@@ -157,6 +157,7 @@ private struct MemoryShelvesWorld: View {
         }
         return ordered.enumerated().map { index, moment in
             ShelfMemory(
+                id: moment.id,
                 title: moment.title,
                 summary: moment.summary,
                 skill: shelfLabel(for: moment, index: index),
@@ -292,21 +293,21 @@ private struct MemoryShelvesWorld: View {
 }
 
 private struct ShelfMemory: Identifiable {
+    let id: String
     let title: String
     let summary: String
     let skill: String
     let color: Color
     let size: CGFloat
-    var id: String { title }
 }
 
 private struct CareerFridgeWorld: View {
     let moments: [SoloraMoment]
 
-    private var tiles: [(String, String)] {
+    private var tiles: [(id: String, title: String, skill: String)] {
         let source = moments.isEmpty ? DemoFixtures.moments : moments
         return source.prefix(4).enumerated().map { index, moment in
-            (moment.title, ["Momentum", "Proof", "Connection", "Craft"][index % 4])
+            (moment.id, moment.title, ["Momentum", "Proof", "Connection", "Craft"][index % 4])
         }
     }
 
@@ -317,18 +318,18 @@ private struct CareerFridgeWorld: View {
             Text("The small proof you keep close.")
                 .foregroundStyle(SoloraTheme.ink.opacity(0.7))
             VStack(spacing: 12) {
-                ForEach(tiles, id: \.0) { tile in
+                ForEach(tiles, id: \.id) { tile in
                     HStack(spacing: 14) {
                         Circle().fill(SoloraTheme.gold).frame(width: 18, height: 18)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(tile.0).font(.headline)
-                            Text(tile.1).font(.caption.weight(.bold)).foregroundStyle(SoloraTheme.coral)
+                            Text(tile.title).font(.headline)
+                            Text(tile.skill).font(.caption.weight(.bold)).foregroundStyle(SoloraTheme.coral)
                         }
                         Spacer()
                     }
                     .padding(15)
                     .background(SoloraTheme.cream, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .rotationEffect(.degrees(tile.0.hashValue.isMultiple(of: 2) ? -2 : 1))
+                    .rotationEffect(.degrees(tile.id.hashValue.isMultiple(of: 2) ? -2 : 1))
                 }
             }
             .padding(18)

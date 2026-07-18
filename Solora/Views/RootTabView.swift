@@ -33,7 +33,9 @@ struct RootTabView: View {
             )
             .tabItem { Label("World", systemImage: "sparkles") }
             .tag(RootTab.world)
-            YouView().tabItem { Label("You", systemImage: "person.crop.circle.fill") }.tag(RootTab.you)
+            YouView(vibe: vibe, visualReference: visualReference)
+                .tabItem { Label("You", systemImage: "person.crop.circle.fill") }
+                .tag(RootTab.you)
         }
         .tint(SoloraTheme.coral)
     }
