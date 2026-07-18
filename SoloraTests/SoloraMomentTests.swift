@@ -37,4 +37,16 @@ final class SoloraMomentTests: XCTestCase {
 
         XCTAssertEqual(moment.summary, "Captured a post-event reflection and a useful next step.")
     }
+
+    func testAuthenticatedUserDerivesFirstNameAndInitials() {
+        let user = AuthenticatedUser(
+            id: "person-1",
+            displayName: "Amir Dzakwan",
+            email: "amir@example.com",
+            photoURL: nil
+        )
+
+        XCTAssertEqual(user.firstName, "Amir")
+        XCTAssertEqual(user.initials, "AD")
+    }
 }

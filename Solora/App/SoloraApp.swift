@@ -3,35 +3,38 @@ import FirebaseCore
 
 @main
 struct SoloraApp: App {
+    @StateObject private var authenticationSession: AuthenticationSession
+
     init() {
         if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
             FirebaseApp.configure()
         }
+
+        let arguments = ProcessInfo.processInfo.arguments
+        let bypassesAuthentication = arguments.contains("-skipOnboarding") || arguments.contains("-skipAuthentication")
+        _authenticationSession = StateObject(
+            wrappedValue: AuthenticationSession(bypassesAuthentication: bypassesAuthentication)
+        )
     }
 
     var body: some Scene {
         WindowGroup {
-            LaunchExperience()
+            LaunchExperience(authenticationSession: authenticationSession)
+                .onOpenURL { authenticationSession.handleOpenURL($0) }
         }
     }
 }
 
 private struct LaunchExperience: View {
+    @ObservedObject var authenticationSession: AuthenticationSession
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasEntered = ProcessInfo.processInfo.arguments.contains("-skipOnboarding")
     @State private var selectedVibe = "Warm & reflective"
-    @State private var selectedVisualReference = "Inside Out orbs"
+    @State private var selectedVisualReference = "Core room"
 
     var body: some View {
         Group {
-            if hasEntered {
-                RootTabView(
-                    container: .demo,
-                    vibe: selectedVibe,
-                    visualReference: selectedVisualReference
-                )
-                .transition(reduceMotion ? .opacity : .soloraReveal)
-            } else {
+            if !hasEntered {
                 SoloraOnboarding { vibe, visualReference in
                     selectedVibe = vibe
                     selectedVisualReference = visualReference
@@ -40,295 +43,251 @@ private struct LaunchExperience: View {
                     }
                 }
                 .transition(.opacity)
+            } else {
+                authenticatedExperience
+                    .transition(reduceMotion ? .opacity : .soloraReveal)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var authenticatedExperience: some View {
+        switch authenticationSession.state {
+        case .checking:
+            AuthenticationLoadingView()
+        case .signedOut:
+            AuthenticationView(session: authenticationSession)
+        case .signedIn(let user):
+            RootTabView(
+                container: .demo,
+                vibe: selectedVibe,
+                visualReference: selectedVisualReference,
+                authenticatedUser: user,
+                signOut: authenticationSession.signOut
+            )
         }
     }
 }
 
 private struct SoloraOnboarding: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var revealSolora = false
-    @State private var showSetup = false
+
+    @State private var resolvedBrand = false
+    @State private var showsSetup = false
     @State private var selectedVibe = "Warm & reflective"
-    @State private var selectedVisualReference = "Inside Out orbs"
-    @State private var brandSequenceTask: Task<Void, Never>?
+    @State private var selectedVisualReference = "Core room"
+    @State private var brandTask: Task<Void, Never>?
 
     let enter: (String, String) -> Void
 
-    private let ink = Color(red: 0.13, green: 0.08, blue: 0.07)
-    private let cream = Color(red: 0.99, green: 0.94, blue: 0.84)
-    private let coral = Color(red: 0.86, green: 0.27, blue: 0.20)
-    private let gold = Color(red: 0.82, green: 0.57, blue: 0.18)
-
     var body: some View {
         ZStack {
-            cream.ignoresSafeArea()
+            SoloraTheme.cream.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    header
-                        .padding(.top, 20)
-
                     brandMoment
-                        .padding(.top, 34)
+                        .padding(.top, showsSetup ? 20 : 82)
 
-                    if showSetup {
+                    if showsSetup {
                         setup
-                            .padding(.top, 30)
+                            .padding(.top, 24)
                             .transition(reduceMotion ? .opacity : .soloraReveal)
                     }
                 }
-                .padding(.bottom, 96)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 100)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button {
-                    enter(selectedVibe, selectedVisualReference)
-                } label: {
-                    HStack(spacing: 10) {
-                        Text("Enter my world")
-                        Image(systemName: "arrow.right")
-                            .font(.headline.weight(.bold))
+                if showsSetup {
+                    Button {
+                        enter(selectedVibe, selectedVisualReference)
+                    } label: {
+                        HStack {
+                            Text("Enter Solora")
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                        }
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(SoloraTheme.cream)
+                        .padding(.horizontal, 18)
+                        .frame(height: 56)
+                        .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .buttonStyle(SoloraPressButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(SoloraTheme.cream)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .buttonStyle(SoloraPrimaryButtonStyle(ink: ink, gold: gold))
-                .accessibilityHint("Opens the Solora demo")
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(cream)
             }
         }
-        .foregroundStyle(ink)
+        .foregroundStyle(SoloraTheme.ink)
         .onAppear(perform: runBrandSequence)
-        .onDisappear { brandSequenceTask?.cancel() }
-    }
-
-    private var header: some View {
-        HStack {
-            Text("SOLORA")
-                .font(.caption.weight(.black))
-                .tracking(2.4)
-            Spacer()
-            Text("A small beginning")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(ink.opacity(0.62))
-        }
-        .padding(.horizontal, 24)
+        .onDisappear { brandTask?.cancel() }
     }
 
     private var brandMoment: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 18) {
             ZStack {
                 SoloraOrbView(
-                    size: 150,
-                    color: coral,
-                    isAlive: revealSolora,
-                    showsHalo: revealSolora
+                    size: showsSetup ? 112 : 164,
+                    color: SoloraTheme.coral,
+                    isAlive: resolvedBrand,
+                    showsHalo: resolvedBrand
                 )
-                .scaleEffect(revealSolora ? 1 : 0.86)
+                .scaleEffect(resolvedBrand ? 1 : 0.88)
 
-                Image(systemName: revealSolora ? "sparkle" : "wand.and.stars")
-                    .font(.system(size: revealSolora ? 38 : 31, weight: .medium))
-                    .foregroundStyle(cream)
+                Image(systemName: resolvedBrand ? "circle.fill" : "wand.and.rays")
+                    .font(.system(size: resolvedBrand ? 25 : 34, weight: .bold))
+                    .foregroundStyle(SoloraTheme.cream)
                     .contentTransition(.symbolEffect(.replace))
-                    .symbolEffect(.bounce, value: revealSolora)
             }
             .accessibilityHidden(true)
 
-            VStack(spacing: 12) {
-                Text(revealSolora ? "Solora" : "GPT-5.6 Sol + Lore + Aura")
-                    .font(.system(size: revealSolora ? 48 : 28, weight: .black, design: .rounded))
+            VStack(spacing: 8) {
+                Text(resolvedBrand ? "Solora" : "GPT-5.6 Sol + Lore + Aura")
+                    .font(.system(size: resolvedBrand ? 46 : 25, weight: .black, design: .rounded))
+                    .tracking(resolvedBrand ? -1.6 : -0.5)
                     .multilineTextAlignment(.center)
                     .contentTransition(.interpolate)
-                    .minimumScaleFactor(0.75)
 
-                if revealSolora {
-                    Text("Your life becomes your lore.")
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(ink.opacity(0.72))
-                        .transition(.opacity)
-                } else {
-                    Text("A little intelligence. A lot more you.")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(ink.opacity(0.65))
-                }
+                Text(resolvedBrand ? "Your life becomes your lore." : "Sol  ·  Lore  ·  Aura")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.56))
+                    .contentTransition(.interpolate)
             }
-            .padding(.horizontal, 24)
         }
-        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: revealSolora)
+        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: resolvedBrand)
+        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: showsSetup)
     }
 
     private var setup: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Make my world feel like…")
-                .font(.headline.weight(.bold))
+        VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 11) {
+                Text("Choose your energy")
+                    .font(.title3.weight(.bold))
 
-            VStack(spacing: 8) {
-                ForEach(["Warm & reflective", "Bold & ambitious", "Playful & curious"], id: \.self) { vibe in
-                    Button {
-                        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
-                            selectedVibe = vibe
-                        }
-                    } label: {
-                        HStack {
-                            Text(vibe)
-                                .font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Image(systemName: selectedVibe == vibe ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(selectedVibe == vibe ? coral : ink.opacity(0.42))
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(height: 44)
-                        .background(selectedVibe == vibe ? coral.opacity(0.10) : Color.clear)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(ink.opacity(selectedVibe == vibe ? 0.30 : 0.14), lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-                    .accessibilityAddTraits(selectedVibe == vibe ? .isSelected : [])
+                HStack(spacing: 8) {
+                    vibeChoice("Warm", value: "Warm & reflective", color: SoloraTheme.gold)
+                    vibeChoice("Bold", value: "Bold & ambitious", color: SoloraTheme.coral)
+                    vibeChoice("Playful", value: "Playful & curious", color: SoloraTheme.lavender)
                 }
             }
 
-            VStack(alignment: .leading, spacing: 9) {
-                Text("Visual reference")
-                    .font(.subheadline.weight(.bold))
+            VStack(alignment: .leading, spacing: 11) {
+                Text("Choose a world")
+                    .font(.title3.weight(.bold))
 
-                FlowLayout(spacing: 8) {
-                    ForEach(["Inside Out orbs", "Career Fridge magnets", "Quest Map"], id: \.self) { reference in
-                        choiceChip(reference, isSelected: selectedVisualReference == reference) {
-                            selectedVisualReference = reference
-                        }
-                    }
+                HStack(spacing: 8) {
+                    worldChoice("Core room", symbol: "circle.grid.3x3.fill")
+                    worldChoice("Career fridge", symbol: "refrigerator.fill")
+                    worldChoice("Quest map", symbol: "point.3.connected.trianglepath.dotted")
                 }
             }
 
-            HStack(spacing: 12) {
-                sourceStatus(title: "CV")
-                sourceStatus(title: "Calendar")
+            VStack(alignment: .leading, spacing: 11) {
+                Text("Bring your life in")
+                    .font(.title3.weight(.bold))
+
+                HStack(spacing: 8) {
+                    source("CV", symbol: "doc.text.fill")
+                    source("Calendar", symbol: "calendar")
+                }
             }
         }
-        .padding(.horizontal, 24)
     }
 
-    private func choiceChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button {
-            withAnimation(reduceMotion ? nil : SoloraMotion.responsive, action)
-        } label: {
-            HStack(spacing: 6) {
-                if isSelected {
-                    Image(systemName: "checkmark")
-                        .font(.caption.weight(.black))
-                }
-                Text(title)
-                    .font(.caption.weight(.bold))
+    private func vibeChoice(_ label: String, value: String, color: Color) -> some View {
+        let selected = selectedVibe == value
+        return Button {
+            withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
+                selectedVibe = value
             }
-            .foregroundStyle(isSelected ? cream : ink)
+        } label: {
+            VStack(alignment: .leading, spacing: 12) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 30, height: 30)
+                    .overlay {
+                        if selected {
+                            Image(systemName: "checkmark")
+                                .font(.caption.weight(.black))
+                                .foregroundStyle(SoloraTheme.ink)
+                        }
+                    }
+                Text(label)
+                    .font(.subheadline.weight(.bold))
+            }
+            .foregroundStyle(SoloraTheme.ink)
+            .frame(maxWidth: .infinity, minHeight: 86, alignment: .leading)
             .padding(.horizontal, 12)
-            .frame(minHeight: 36)
-            .background(isSelected ? ink : ink.opacity(0.06))
-            .clipShape(Capsule())
+            .background(selected ? color.opacity(0.18) : .white.opacity(0.38), in: RoundedRectangle(cornerRadius: 12))
+            .soloraHairline(selected ? color.opacity(0.72) : SoloraTheme.ink.opacity(0.08), radius: 12)
         }
         .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.97))
-        .accessibilityLabel(title)
-        .accessibilityValue(isSelected ? "Selected" : "Not selected")
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func sourceStatus(title: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func worldChoice(_ label: String, symbol: String) -> some View {
+        let selected = selectedVisualReference == label
+        return Button {
+            withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
+                selectedVisualReference = label
+            }
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 20, weight: .semibold))
+                Text(label.replacingOccurrences(of: "Career ", with: ""))
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(selected ? SoloraTheme.cream : SoloraTheme.ink)
+            .frame(maxWidth: .infinity, minHeight: 68)
+            .background(selected ? SoloraTheme.ink : .white.opacity(0.38), in: RoundedRectangle(cornerRadius: 11))
+            .soloraHairline(selected ? SoloraTheme.ink : SoloraTheme.ink.opacity(0.08), radius: 11)
+        }
+        .buttonStyle(SoloraPressButtonStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func source(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .foregroundStyle(SoloraTheme.coral)
+                .frame(width: 24)
             Text(title)
                 .font(.subheadline.weight(.bold))
-            Label("Demo connected", systemImage: "checkmark.circle.fill")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(gold)
-            Text("Read-only source")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(ink.opacity(0.64))
+            Spacer()
+            Image(systemName: "checkmark")
+                .font(.caption.weight(.black))
+                .foregroundStyle(SoloraTheme.moss)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(ink.opacity(0.045))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(ink.opacity(0.14), lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, minHeight: 54)
+        .background(.white.opacity(0.42), in: RoundedRectangle(cornerRadius: 11))
+        .soloraHairline(radius: 11)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), demo connected")
     }
 
     private func runBrandSequence() {
-        brandSequenceTask?.cancel()
+        brandTask?.cancel()
         guard !reduceMotion else {
-            revealSolora = true
-            showSetup = true
+            resolvedBrand = true
+            showsSetup = true
             return
         }
 
-        brandSequenceTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_050_000_000)
+        brandTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(950))
             guard !Task.isCancelled else { return }
-            withAnimation(SoloraMotion.spatial) { revealSolora = true }
+            withAnimation(SoloraMotion.spatial) { resolvedBrand = true }
 
-            try? await Task.sleep(nanoseconds: 570_000_000)
+            try? await Task.sleep(for: .milliseconds(560))
             guard !Task.isCancelled else { return }
-            withAnimation(SoloraMotion.reveal) { showSetup = true }
+            withAnimation(SoloraMotion.reveal) { showsSetup = true }
         }
-    }
-}
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .greatestFiniteMagnitude
-        var rowWidth: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var totalHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if rowWidth > 0, rowWidth + spacing + size.width > width {
-                totalHeight += rowHeight + spacing
-                rowWidth = 0
-                rowHeight = 0
-            }
-            rowWidth += (rowWidth == 0 ? 0 : spacing) + size.width
-            rowHeight = max(rowHeight, size.height)
-        }
-        return CGSize(width: proposal.width ?? rowWidth, height: totalHeight + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var point = bounds.origin
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if point.x > bounds.minX, point.x + spacing + size.width > bounds.maxX {
-                point.x = bounds.minX
-                point.y += rowHeight + spacing
-                rowHeight = 0
-            }
-            if point.x > bounds.minX { point.x += spacing }
-            subview.place(at: point, proposal: ProposedViewSize(size))
-            point.x += size.width
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
-private struct SoloraPrimaryButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    let ink: Color
-    let gold: Color
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.headline.weight(.bold))
-            .foregroundStyle(Color.white)
-            .background(ink.opacity(configuration.isPressed ? 0.86 : 1))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(gold.opacity(0.8), lineWidth: 1))
-            .shadow(color: ink.opacity(0.18), radius: configuration.isPressed ? 4 : 12, y: 6)
-            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.97)
-            .animation(reduceMotion ? nil : SoloraMotion.quick, value: configuration.isPressed)
     }
 }

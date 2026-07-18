@@ -1,61 +1,58 @@
 import SwiftUI
 
 struct ArchiveView: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     let moments: [SoloraMoment]
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    private var filteredMoments: [SoloraMoment] {
+        guard !query.isEmpty else { return moments }
+        return moments.filter {
+            $0.title.localizedCaseInsensitiveContains(query) ||
+            $0.summary.localizedCaseInsensitiveContains(query)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 SoloraTheme.paper.ignoresSafeArea()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Archive")
-                                .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                            Text("The evidence behind everything you create.")
-                                .foregroundStyle(.secondary)
+
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("\(moments.count)")
+                                .font(.system(size: 58, weight: .black, design: .rounded))
+                                .tracking(-2)
+                            Text("memories")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(SoloraTheme.ink.opacity(0.48))
                         }
+                        .padding(.bottom, 8)
 
-                        HStack(spacing: 0) {
-                            archiveStat("\(moments.count)", "Soloras")
-                            Divider().frame(height: 38)
-                            archiveStat("8", "Skills")
-                            Divider().frame(height: 38)
-                            archiveStat("3", "Themes")
-                        }
-                        .padding(.vertical, 14)
-                        .background(SoloraTheme.cream, in: RoundedRectangle(cornerRadius: 14))
-
-                        Text("Most recent")
-                            .font(.title2.weight(.bold))
-
-                        ForEach(Array(moments.enumerated()), id: \.element.id) { index, moment in
-                            MomentRow(moment: moment, color: orbColors[index % orbColors.count])
-                                .transition(.soloraReveal)
-                                .soloraEntrance(index: index)
+                        ForEach(Array(filteredMoments.enumerated()), id: \.element.id) { index, moment in
+                            MomentRow(
+                                moment: moment,
+                                color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count]
+                            )
+                            .soloraEntrance(index: index, distance: 7)
                         }
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 12)
-                    .padding(.bottom, 28)
+                    .padding(18)
                 }
-                .animation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.spatial, value: moments.map(\.id))
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .foregroundStyle(SoloraTheme.ink)
+            .navigationTitle("Archive")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, prompt: "Search your lore")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                }
+            }
         }
-    }
-
-    private var orbColors: [Color] {
-        [SoloraTheme.coral, SoloraTheme.gold, SoloraTheme.lavender]
-    }
-
-    private func archiveStat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value).font(.title3.bold()).contentTransition(.numericText())
-            Text(label).font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        .presentationDetents([.large])
     }
 }

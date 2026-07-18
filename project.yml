@@ -11,20 +11,31 @@ packages:
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk.git
     exactVersion: 12.16.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS.git
+    exactVersion: 9.2.0
 targets:
   Solora:
     type: application
     platform: iOS
     sources:
       - path: Solora
+    info:
+      path: Solora/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: Solora
+        UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - "$(GOOGLE_REVERSED_CLIENT_ID)"
     settings:
       base:
         DEVELOPMENT_TEAM: QYDB6YBZ34
         CODE_SIGN_STYLE: Automatic
         PRODUCT_NAME: Solora
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Solora
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        GOOGLE_CLIENT_ID: 48257854814-9ecfg77kh1l8jdhanpjip4madvdp4emq.apps.googleusercontent.com
+        GOOGLE_REVERSED_CLIENT_ID: com.googleusercontent.apps.48257854814-9ecfg77kh1l8jdhanpjip4madvdp4emq
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
       - package: Firebase
@@ -35,6 +46,10 @@ targets:
         product: FirebaseFirestore
       - package: Firebase
         product: FirebaseFunctions
+      - package: GoogleSignIn
+        product: GoogleSignIn
+      - package: GoogleSignIn
+        product: GoogleSignInSwift
   SoloraTests:
     type: bundle.unit-test
     platform: iOS
@@ -42,6 +57,8 @@ targets:
       - path: SoloraTests
     settings:
       base:
+        DEVELOPMENT_TEAM: QYDB6YBZ34
+        CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Solora

@@ -1,270 +1,680 @@
 import SwiftUI
 
 struct CreateView: View {
+    let moments: [SoloraMoment]
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var phase: CreatePhase = .ready
-    @State private var roleBrief = CreateView.demoRoleBrief
-    @State private var selectedMemoryIDs: Set<Int> = [1, 2, 3]
-    @State private var selectedPreview: PreviewKind = .presentation
-    @State private var evidenceTask: Task<Void, Never>?
+    @Namespace private var mixerNamespace
 
-    private static let demoRoleBrief = "Associate Product Manager — help shape early-career tools that make job searching feel more human. You’ll turn user insight into clear product decisions, partner with design and engineering, and communicate what you learn."
+    @State private var selectedIDs: Set<String>
+    @State private var output: ShareOutput = .story
+    @State private var phase: SharePhase = .select
+    @State private var target = "Associate Product Manager"
+    @State private var generationTask: Task<Void, Never>?
 
-    private let memories = [
-        EvidenceMemory(id: 1, rank: "01", title: "Turned club feedback into a better sign-up flow", reason: "Shows user insight → practical iteration", skills: "User research · Prioritisation", cvBullet: "Synthesised member feedback and simplified the club sign-up flow, making the first step clearer for new students.", starPoint: "Situation: sign-ups stalled. Task: find the friction. Action: listened to members and simplified the flow. Result: a clearer path people could act on."),
-        EvidenceMemory(id: 2, rank: "02", title: "Led a cross-society launch in one week", reason: "Shows alignment under real constraints", skills: "Collaboration · Delivery", cvBullet: "Coordinated a cross-society launch in one week, aligning partners around a focused plan and clear ownership.", starPoint: "Situation: partners needed to launch fast. Task: create alignment. Action: set a simple plan and owners. Result: the launch landed on time."),
-        EvidenceMemory(id: 3, rank: "03", title: "Made the case for a simpler event format", reason: "Shows clear thinking and influence", skills: "Product judgment · Communication", cvBullet: "Used attendee needs to recommend a simpler event format, helping the team make a clearer, more practical decision.", starPoint: "Situation: the format was overcomplicated. Task: make a recommendation. Action: framed the audience need and trade-off. Result: the team chose a simpler experience.")
-    ]
+    init(moments: [SoloraMoment] = DemoFixtures.moments) {
+        let source = moments.isEmpty ? DemoFixtures.moments : moments
+        self.moments = source
+        _selectedIDs = State(initialValue: Set(source.prefix(3).map(\.id)))
+    }
 
-    private var chosenMemories: [EvidenceMemory] {
-        memories.filter { selectedMemoryIDs.contains($0.id) }
+    private var selectedMoments: [SoloraMoment] {
+        moments.filter { selectedIDs.contains($0.id) }
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    header
-                    jobBrief
-                    phaseContent
+            ZStack {
+                (phase == .weaving ? SoloraTheme.ink : SoloraTheme.paper)
+                    .ignoresSafeArea()
+                    .animation(reduceMotion ? nil : SoloraMotion.responsive, value: phase)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        topBar
+
+                        Group {
+                            switch phase {
+                            case .select:
+                                selectionFlow
+                            case .weaving:
+                                GenerationTheatre(
+                                    moments: selectedMoments,
+                                    output: output,
+                                    namespace: mixerNamespace
+                                )
+                                .frame(minHeight: 530)
+                            case .result:
+                                resultFlow
+                            }
+                        }
                         .id(phase)
                         .transition(reduceMotion ? .opacity : .soloraReveal)
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 10)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 36)
             }
-            .background(SoloraTheme.cream.ignoresSafeArea())
-            .navigationTitle("Create")
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .sensoryFeedback(.selection, trigger: selectedIDs)
+            .sensoryFeedback(.success, trigger: phase) { _, value in value == .result }
         }
-        .onDisappear {
-            evidenceTask?.cancel()
-            if case .finding = phase { phase = .ready }
-        }
-        .sensoryFeedback(.selection, trigger: selectedMemoryIDs)
-        .sensoryFeedback(.success, trigger: phase) { _, newPhase in newPhase == .complete }
+        .onDisappear { generationTask?.cancel() }
     }
 
-    @ViewBuilder
-    private var phaseContent: some View {
-        switch phase {
-        case .ready:
-            evidencePrompt
-        case .finding:
-            findingEvidence
-        case .complete:
-            evidenceResults
-            deliverables
-            sharePreview
-        }
-    }
+    private var topBar: some View {
+        HStack {
+            Text(phase == .weaving ? "Making…" : "Share")
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundStyle(phase == .weaving ? SoloraTheme.cream : SoloraTheme.ink)
+                .contentTransition(.interpolate)
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Make your next move\nfeel like you.").font(.system(size: 32, weight: .bold, design: .rounded)).foregroundStyle(SoloraTheme.ink)
-            Text("Paste a role, choose your proof, then open a ready-to-use story.").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.68))
-        }.padding(.top, 12)
-    }
+            Spacer()
 
-    private var jobBrief: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Label("Role brief", systemImage: "doc.text").font(.caption.weight(.semibold)).foregroundStyle(SoloraTheme.coral)
-                Spacer()
-                Button("Paste demo brief") { roleBrief = Self.demoRoleBrief }
-                    .font(.caption.weight(.semibold)).buttonStyle(.borderless).foregroundStyle(SoloraTheme.coral)
-                Button("Reset") { resetDemo() }
-                    .font(.caption.weight(.semibold)).buttonStyle(.borderless).foregroundStyle(SoloraTheme.ink.opacity(0.7))
+            if phase == .result {
+                Button(action: reset) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(SoloraTheme.ink)
+                        .frame(width: 44, height: 44)
+                        .background(SoloraTheme.ink.opacity(0.07), in: Circle())
+                }
+                .buttonStyle(SoloraPressButtonStyle())
+                .accessibilityLabel("Start again")
             }
-            TextEditor(text: $roleBrief)
-                .font(.subheadline).foregroundStyle(SoloraTheme.ink)
-                .frame(minHeight: 112).scrollContentBackground(.hidden)
-                .padding(10).background(SoloraTheme.cream.opacity(0.65), in: RoundedRectangle(cornerRadius: 12))
-                .accessibilityLabel("Editable role brief")
-            Text("Demo-ready: edit this, or restore the Product brief any time.").font(.caption).foregroundStyle(SoloraTheme.ink.opacity(0.62))
-        }
-        .padding(20).background(.white.opacity(0.66), in: RoundedRectangle(cornerRadius: 20))
-        .overlay(alignment: .leading) { Rectangle().fill(SoloraTheme.gold).frame(width: 4).clipShape(RoundedRectangle(cornerRadius: 2)) }
-    }
-
-    private var evidencePrompt: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Your archive already has the proof.").font(.title3.weight(.bold)).foregroundStyle(SoloraTheme.ink)
-            Text("Find the moments that show product judgment, curiosity, and collaboration.").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.68))
-            Button(action: findEvidence) { Label("Find my strongest evidence", systemImage: "sparkles").font(.headline).frame(maxWidth: .infinity).frame(minHeight: 52) }
-                .buttonStyle(.borderedProminent).buttonBorderShape(.roundedRectangle(radius: 14)).tint(SoloraTheme.coral)
-                .accessibilityHint("Surfaces three ranked saved moments for this role")
         }
     }
 
-    private var findingEvidence: some View {
+    private var selectionFlow: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            targetField
+
+            MemoryMixer(
+                moments: moments,
+                selectedIDs: $selectedIDs,
+                namespace: mixerNamespace,
+                onToggle: toggle
+            )
+
+            VStack(alignment: .leading, spacing: 11) {
+                Text("Make")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.54))
+                OutputPicker(selection: $output)
+            }
+
+            Button(action: makeArtifact) {
+                HStack {
+                    Text("Make from \(selectedMoments.count)")
+                    Spacer()
+                    Image(systemName: "wand.and.rays")
+                }
+                .font(.headline.weight(.bold))
+                .foregroundStyle(SoloraTheme.cream)
+                .padding(.horizontal, 18)
+                .frame(height: 56)
+                .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
+            }
+            .buttonStyle(SoloraPressButtonStyle())
+            .disabled(selectedMoments.isEmpty)
+            .opacity(selectedMoments.isEmpty ? 0.42 : 1)
+            .accessibilityHint("Combines the selected memories into a \(output.title)")
+        }
+    }
+
+    private var targetField: some View {
+        HStack(spacing: 12) {
+            Text("For")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(SoloraTheme.coral)
+
+            TextField("Target or occasion", text: $target)
+                .font(.subheadline.weight(.semibold))
+                .textInputAutocapitalization(.words)
+
+            Image(systemName: "pencil")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(SoloraTheme.ink.opacity(0.38))
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .padding(.horizontal, 15)
+        .frame(height: 50)
+        .background(.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 12))
+        .soloraHairline(radius: 12)
+    }
+
+    private var resultFlow: some View {
         VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 14) {
-                SoloraOrbView(size: 48, color: SoloraTheme.coral, isAlive: true, showsHalo: true)
+            OutputPicker(selection: $output)
+
+            ArtifactPreview(
+                output: output,
+                moments: selectedMoments,
+                target: target
+            )
+            .id(output)
+            .transition(reduceMotion ? .opacity : .soloraReveal)
+
+            HStack(spacing: 8) {
+                ForEach(Array(selectedMoments.prefix(3).enumerated()), id: \.element.id) { index, moment in
+                    SoloraOrbView(
+                        size: 28,
+                        color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count]
+                    )
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Finding the threads that matter").font(.headline)
-                    Text("Matching your brief to saved moments…").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.64))
                 }
-            }.foregroundStyle(SoloraTheme.ink)
-            SoloraProgressLine()
-        }.padding(20).background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 20))
-    }
 
-    private var evidenceResults: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Choose the proof to use", systemImage: "checkmark.seal.fill").font(.headline).foregroundStyle(SoloraTheme.coral)
-            Text("Select memories to immediately tailor every preview below.").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.68))
-            VStack(spacing: 0) {
-                ForEach(memories) { memory in
-                    EvidenceRow(memory: memory, isSelected: selectedMemoryIDs.contains(memory.id)) { toggle(memory.id) }
-                        .soloraEntrance(index: memory.id - 1, distance: 8)
-                    if memory.id != memories.last?.id { Divider().overlay(SoloraTheme.ink.opacity(0.10)) }
+                Text("Made from your real moments")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.54))
+            }
+
+            ShareLink(item: shareText) {
+                HStack {
+                    Text(output.actionTitle)
+                    Spacer()
+                    Image(systemName: "square.and.arrow.up")
                 }
-            }.background(.white.opacity(0.66), in: RoundedRectangle(cornerRadius: 20))
-            Text("\(chosenMemories.count) of 3 memories selected").font(.caption.weight(.semibold)).foregroundStyle(SoloraTheme.ink.opacity(0.62))
+                .font(.headline.weight(.bold))
+                .foregroundStyle(SoloraTheme.cream)
+                .padding(.horizontal, 18)
+                .frame(height: 56)
+                .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
+            }
+            .buttonStyle(SoloraPressButtonStyle())
         }
     }
 
-    private var deliverables: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Open your tailored materials").font(.title3.weight(.bold)).foregroundStyle(SoloraTheme.ink)
-            Button { selectPreview(.cv) } label: { DeliverableRow(icon: "doc.richtext", title: "Tailored CV", detail: "\(chosenMemories.count) evidence-led role-ready bullets", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-            Button { selectPreview(.interview) } label: { DeliverableRow(icon: "quote.bubble", title: "Interview talking points", detail: "Concise STAR stories from your selected memories", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-            Button { selectPreview(.presentation) } label: { DeliverableRow(icon: "rectangle.on.rectangle.angled", title: "Presentation", detail: "Demo preview · 5 slides that connect your story", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-        }
-    }
-
-    private var sharePreview: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack { VStack(alignment: .leading, spacing: 3) { Text(selectedPreview.title).font(.headline); Text(selectedPreview.subtitle).font(.caption).foregroundStyle(SoloraTheme.cream.opacity(0.7)) }; Spacer(); Text("DEMO PREVIEW").font(.caption2.weight(.bold)).foregroundStyle(SoloraTheme.gold) }
-            ZStack {
-                previewCanvas
-                    .id(selectedPreview)
-                    .transition(reduceMotion ? .opacity : .soloraReveal)
-            }
-            HStack(spacing: 10) {
-                PreviewButton(kind: .linkedin, selected: selectedPreview == .linkedin, action: selectPreview)
-                PreviewButton(kind: .instagram, selected: selectedPreview == .instagram, action: selectPreview)
-            }
-        }.padding(20).background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 22)).foregroundStyle(SoloraTheme.cream)
-    }
-
-    @ViewBuilder private var previewCanvas: some View {
-        switch selectedPreview {
+    private var shareText: String {
+        switch output {
         case .cv:
-            VStack(alignment: .leading, spacing: 10) { Text("Associate Product Manager").font(.headline).foregroundStyle(SoloraTheme.ink); ForEach(chosenMemories) { Text("• \($0.cvBullet)").font(.caption).fixedSize(horizontal: false, vertical: true) } }
-                .padding(16).frame(maxWidth: .infinity, alignment: .leading).background(.white, in: RoundedRectangle(cornerRadius: 16)).foregroundStyle(SoloraTheme.ink)
+            return selectedMoments.map { "• \($0.title): \($0.summary)" }.joined(separator: "\n")
         case .interview:
-            VStack(alignment: .leading, spacing: 10) { ForEach(chosenMemories) { Text($0.starPoint).font(.caption).fixedSize(horizontal: false, vertical: true); if $0.id != chosenMemories.last?.id { Divider() } } }
-                .padding(16).frame(maxWidth: .infinity, alignment: .leading).background(SoloraTheme.cream, in: RoundedRectangle(cornerRadius: 16)).foregroundStyle(SoloraTheme.ink)
-        case .presentation, .linkedin, .instagram:
-            ZStack(alignment: .bottomLeading) { RoundedRectangle(cornerRadius: 16).fill(selectedPreview == .instagram ? SoloraTheme.coral : SoloraTheme.gold).frame(height: 154); VStack(alignment: .leading, spacing: 8) { Text(selectedPreview == .presentation ? "From moments\nto momentum." : "I’m building\nwith intention.").font(.system(size: 23, weight: .bold, design: .rounded)); Text("Built from \(chosenMemories.count) selected moments").font(.caption.weight(.semibold)).opacity(0.72) }.padding(18) }.foregroundStyle(SoloraTheme.ink)
+            return "Talking points for \(target):\n" + selectedMoments.map(\.summary).joined(separator: "\n")
+        case .post:
+            return "A recent reminder: the best career progress is often a series of small moments. \(selectedMoments.first?.summary ?? "")"
+        case .story:
+            return "Three moments. One clearer direction."
+        case .deck:
+            return "From moments to momentum — a five-slide Solora story."
         }
     }
 
-    private func findEvidence() {
-        evidenceTask?.cancel()
-        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) { phase = .finding }
-        evidenceTask = Task {
-            try? await Task.sleep(for: .milliseconds(700))
-            guard !Task.isCancelled else { return }
-            await MainActor.run { withAnimation(reduceMotion ? nil : SoloraMotion.reveal) { phase = .complete } }
-        }
-    }
-    private func toggle(_ id: Int) {
+    private func toggle(_ moment: SoloraMoment) {
         withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
-            if selectedMemoryIDs.contains(id) { selectedMemoryIDs.remove(id) } else { selectedMemoryIDs.insert(id) }
+            if selectedIDs.contains(moment.id) {
+                selectedIDs.remove(moment.id)
+                return
+            }
+
+            if selectedIDs.count == 3,
+               let firstSelected = moments.first(where: { selectedIDs.contains($0.id) }) {
+                selectedIDs.remove(firstSelected.id)
+            }
+            selectedIDs.insert(moment.id)
         }
     }
-    private func resetDemo() { evidenceTask?.cancel(); roleBrief = Self.demoRoleBrief; selectedMemoryIDs = [1, 2, 3]; selectedPreview = .presentation; phase = .ready }
-    private func selectPreview(_ kind: PreviewKind) { withAnimation(reduceMotion ? nil : SoloraMotion.responsive) { selectedPreview = kind } }
+
+    private func makeArtifact() {
+        generationTask?.cancel()
+        withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.spatial) {
+            phase = .weaving
+        }
+
+        generationTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 520 : 1_750))
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.18) : SoloraMotion.spatial) {
+                phase = .result
+            }
+        }
+    }
+
+    private func reset() {
+        generationTask?.cancel()
+        withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
+            phase = .select
+        }
+    }
 }
 
-private struct EvidenceMemory: Identifiable { let id: Int; let rank, title, reason, skills, cvBullet, starPoint: String }
-private struct EvidenceRow: View {
-    let memory: EvidenceMemory; let isSelected: Bool; let action: () -> Void
-    var body: some View { Button(action: action) { HStack(alignment: .top, spacing: 14) { Image(systemName: isSelected ? "checkmark.square.fill" : "square").font(.title3).foregroundStyle(SoloraTheme.coral).contentTransition(.symbolEffect(.replace)).symbolEffect(.bounce, value: isSelected); Text(memory.rank).font(.caption.weight(.bold)).foregroundStyle(SoloraTheme.coral).frame(width: 24, alignment: .leading); VStack(alignment: .leading, spacing: 6) { Text(memory.title).font(.subheadline.weight(.semibold)); Text(memory.reason).font(.caption).opacity(0.68); Text(memory.skills).font(.caption2.weight(.semibold)).foregroundStyle(SoloraTheme.coral) }; Spacer(minLength: 0) }.foregroundStyle(SoloraTheme.ink).padding(16) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.99)).accessibilityLabel("\(isSelected ? "Selected" : "Not selected"). \(memory.rank). \(memory.title). \(memory.reason). Skills: \(memory.skills)") }
+private enum SharePhase: Hashable {
+    case select
+    case weaving
+    case result
 }
-private struct DeliverableRow: View { let icon, title, detail: String; var trailing = false; var body: some View { HStack(spacing: 14) { Image(systemName: icon).font(.title3).foregroundStyle(SoloraTheme.coral).frame(width: 30); VStack(alignment: .leading, spacing: 3) { Text(title).font(.subheadline.weight(.semibold)); Text(detail).font(.caption).opacity(0.64) }; Spacer(); if trailing { Image(systemName: "chevron.right").font(.caption.weight(.bold)).opacity(0.45) } }.foregroundStyle(SoloraTheme.ink).padding(16).background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 16)) } }
-private enum CreatePhase: Hashable { case ready, finding, complete }
-private enum PreviewKind: Equatable {
-    case cv, interview, presentation, linkedin, instagram
+
+private enum ShareOutput: String, CaseIterable, Identifiable {
+    case story
+    case post
+    case cv
+    case interview
+    case deck
+
+    var id: Self { self }
 
     var title: String {
         switch self {
-        case .cv: return "Tailored CV"
-        case .interview: return "Interview talking points"
-        case .presentation: return "Presentation"
-        case .linkedin: return "LinkedIn post"
-        case .instagram: return "Instagram Story"
+        case .story: "Story"
+        case .post: "Post"
+        case .cv: "CV"
+        case .interview: "Talk"
+        case .deck: "Deck"
         }
     }
 
-    var subtitle: String {
+    var symbol: String {
         switch self {
-        case .cv: return "Role-ready proof, written from your choices"
-        case .interview: return "Concise STAR prompts to make your story easy to tell"
-        case .presentation: return "Your product story, made visual"
-        case .linkedin: return "A considered career update"
-        case .instagram: return "A shareable moment, sized for Stories"
+        case .story: "rectangle.portrait.fill"
+        case .post: "text.bubble.fill"
+        case .cv: "doc.text.fill"
+        case .interview: "quote.bubble.fill"
+        case .deck: "rectangle.on.rectangle.angled"
+        }
+    }
+
+    var actionTitle: String {
+        switch self {
+        case .cv: "Export CV"
+        case .interview: "Open talking points"
+        case .deck: "Open deck preview"
+        case .post: "Share post"
+        case .story: "Share Story"
         }
     }
 }
 
-private struct PreviewButton: View {
-    let kind: PreviewKind
-    let selected: Bool
-    let action: (PreviewKind) -> Void
-
-    var body: some View {
-        Button { action(kind) } label: {
-            Label(
-                kind == .linkedin ? "LinkedIn" : "Instagram Story",
-                systemImage: kind == .linkedin ? "link" : "camera"
-            )
-            .font(.caption.weight(.semibold))
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(
-                selected ? SoloraTheme.cream : SoloraTheme.cream.opacity(0.15),
-                in: RoundedRectangle(cornerRadius: 12)
-            )
-            .foregroundStyle(selected ? SoloraTheme.ink : SoloraTheme.cream)
-        }
-        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
-        .accessibilityHint("Changes the local demo preview only; nothing will be published")
-    }
-}
-
-private struct SoloraProgressLine: View {
+private struct OutputPicker: View {
+    @Binding var selection: ShareOutput
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var progress: CGFloat = 0.08
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule().fill(SoloraTheme.gold.opacity(0.2))
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [SoloraTheme.coral, SoloraTheme.gold, .white, SoloraTheme.gold],
-                            startPoint: .leading,
-                            endPoint: .trailing
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ShareOutput.allCases) { output in
+                    Button {
+                        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
+                            selection = output
+                        }
+                    } label: {
+                        VStack(spacing: 7) {
+                            Image(systemName: output.symbol)
+                                .font(.system(size: 18, weight: .semibold))
+                            Text(output.title)
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(selection == output ? SoloraTheme.cream : SoloraTheme.ink)
+                        .frame(width: 67, height: 66)
+                        .background(
+                            selection == output ? SoloraTheme.ink : Color.white.opacity(0.48),
+                            in: RoundedRectangle(cornerRadius: 11)
                         )
+                        .soloraHairline(
+                            selection == output ? SoloraTheme.ink : SoloraTheme.ink.opacity(0.08),
+                            radius: 11
+                        )
+                    }
+                    .buttonStyle(SoloraPressButtonStyle())
+                    .accessibilityAddTraits(selection == output ? .isSelected : [])
+                }
+            }
+        }
+        .contentMargins(.horizontal, 0, for: .scrollContent)
+    }
+}
+
+private struct MemoryMixer: View {
+    let moments: [SoloraMoment]
+    @Binding var selectedIDs: Set<String>
+    let namespace: Namespace.ID
+    let onToggle: (SoloraMoment) -> Void
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(SoloraTheme.ink)
+
+            Circle()
+                .stroke(SoloraTheme.cream.opacity(0.10), lineWidth: 34)
+                .frame(width: 230, height: 230)
+                .offset(x: 120, y: -110)
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text("Choose your proof")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Text("\(selectedIDs.count)/3")
+                        .font(.caption.monospacedDigit().weight(.bold))
+                        .foregroundStyle(SoloraTheme.gold)
+                }
+
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(Array(moments.prefix(5).enumerated()), id: \.element.id) { index, moment in
+                        let selected = selectedIDs.contains(moment.id)
+                        Button { onToggle(moment) } label: {
+                            VStack(spacing: 8) {
+                                ZStack(alignment: .bottomTrailing) {
+                                    SoloraOrbView(
+                                        size: selected ? 58 : 48,
+                                        color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
+                                        showsHalo: selected
+                                    )
+                                    .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
+
+                                    if selected {
+                                        Image(systemName: "checkmark")
+                                            .font(.caption2.weight(.black))
+                                            .foregroundStyle(SoloraTheme.ink)
+                                            .frame(width: 20, height: 20)
+                                            .background(SoloraTheme.cream, in: Circle())
+                                    }
+                                }
+
+                                Text(short(moment.title))
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(SoloraTheme.cream.opacity(selected ? 1 : 0.55))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                    .frame(width: 56)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.94))
+                        .accessibilityLabel(moment.title)
+                        .accessibilityValue(selected ? "Selected" : "Not selected")
+                    }
+                }
+
+                Text(selectedSummary)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(SoloraTheme.cream.opacity(0.58))
+                    .lineLimit(1)
+            }
+            .padding(16)
+        }
+        .frame(height: 226)
+        .soloraHairline(Color.white.opacity(0.08), radius: 18)
+    }
+
+    private var selectedSummary: String {
+        let selected = moments.filter { selectedIDs.contains($0.id) }
+        return selected.map { short($0.title) }.joined(separator: "  ·  ")
+    }
+
+    private func short(_ title: String) -> String {
+        title
+            .replacingOccurrences(of: "Found ", with: "")
+            .replacingOccurrences(of: "Made ", with: "")
+            .replacingOccurrences(of: "Built ", with: "")
+            .replacingOccurrences(of: "Aligned ", with: "")
+            .replacingOccurrences(of: "Shipped ", with: "")
+    }
+}
+
+private struct GenerationTheatre: View {
+    let moments: [SoloraMoment]
+    let output: ShareOutput
+    let namespace: Namespace.ID
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var trigger = 0
+
+    var body: some View {
+        Group {
+            if reduceMotion {
+                theatre(phase: .unfold)
+            } else {
+                theatre(phase: .apart)
+                    .phaseAnimator(WeavePhase.allCases, trigger: trigger) { _, phase in
+                        theatre(phase: phase)
+                    } animation: { phase in phase.animation }
+            }
+        }
+        .onAppear { trigger += 1 }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Making a \(output.title) from \(moments.count) memories")
+    }
+
+    private func theatre(phase: WeavePhase) -> some View {
+        VStack(spacing: 26) {
+            ZStack {
+                Circle()
+                    .stroke(SoloraTheme.gold.opacity(phase.ringOpacity), lineWidth: 2)
+                    .frame(width: 230, height: 230)
+                    .scaleEffect(phase.ringScale)
+
+                RoundedRectangle(cornerRadius: phase == .unfold ? 16 : 80, style: .continuous)
+                    .fill(SoloraTheme.cream)
+                    .frame(width: phase.artifactSize.width, height: phase.artifactSize.height)
+                    .opacity(phase.artifactOpacity)
+                    .overlay {
+                        Image(systemName: output.symbol)
+                            .font(.system(size: 38, weight: .bold))
+                            .foregroundStyle(SoloraTheme.coral)
+                            .opacity(phase.artifactOpacity)
+                    }
+
+                ForEach(Array(moments.enumerated()), id: \.element.id) { index, moment in
+                    SoloraOrbView(
+                        size: 62,
+                        color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
+                        showsHalo: phase == .orbit
                     )
-                    .frame(width: max(12, proxy.size.width * progress))
+                    .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
+                    .offset(orbOffset(index: index, phase: phase))
+                    .scaleEffect(phase.orbScale)
+                    .opacity(phase.orbOpacity)
+                }
+            }
+            .frame(height: 330)
+
+            VStack(spacing: 5) {
+                Text(phase == .unfold ? output.title : "Gathering your threads")
+                    .font(.system(size: 27, weight: .bold, design: .rounded))
+                    .contentTransition(.interpolate)
+                Text(phase == .unfold ? "Ready" : "\(moments.count) real moments")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(SoloraTheme.cream.opacity(0.56))
+            }
+            .foregroundStyle(SoloraTheme.cream)
+        }
+    }
+
+    private func orbOffset(index: Int, phase: WeavePhase) -> CGSize {
+        let apart = [CGSize(width: -105, height: -56), .init(width: 100, height: -42), .init(width: 0, height: 104)]
+        let orbit = [CGSize(width: -78, height: -78), .init(width: 94, height: 4), .init(width: -38, height: 96)]
+
+        switch phase {
+        case .apart: return apart[index % apart.count]
+        case .orbit: return orbit[index % orbit.count]
+        case .gather, .unfold: return .zero
+        }
+    }
+}
+
+private enum WeavePhase: CaseIterable {
+    case apart, orbit, gather, unfold
+
+    var orbScale: CGFloat {
+        switch self {
+        case .apart, .orbit: 1
+        case .gather: 0.52
+        case .unfold: 0.22
+        }
+    }
+
+    var orbOpacity: Double {
+        switch self {
+        case .apart, .orbit, .gather: 1
+        case .unfold: 0
+        }
+    }
+
+    var ringOpacity: Double { self == .apart ? 0.10 : self == .unfold ? 0 : 0.62 }
+    var ringScale: CGFloat { self == .gather ? 0.52 : self == .unfold ? 1.28 : 1 }
+    var artifactOpacity: Double { self == .unfold ? 1 : self == .gather ? 0.22 : 0 }
+    var artifactSize: CGSize { self == .unfold ? CGSize(width: 174, height: 230) : CGSize(width: 72, height: 72) }
+
+    var animation: Animation {
+        switch self {
+        case .apart: .linear(duration: 0.01)
+        case .orbit: .spring(duration: 0.38, bounce: 0.12)
+        case .gather: .timingCurve(0.77, 0, 0.175, 1, duration: 0.40)
+        case .unfold: .spring(duration: 0.46, bounce: 0.08)
+        }
+    }
+}
+
+private struct ArtifactPreview: View {
+    let output: ShareOutput
+    let moments: [SoloraMoment]
+    let target: String
+
+    var body: some View {
+        Group {
+            switch output {
+            case .story: story
+            case .post: post
+            case .cv: cv
+            case .interview: interview
+            case .deck: deck
             }
         }
-        .frame(height: 4)
-        .onAppear {
-            guard !reduceMotion else {
-                progress = 0.78
-                return
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Generated \(output.title) preview")
+    }
+
+    private var story: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(SoloraTheme.coral)
+
+            Circle()
+                .stroke(SoloraTheme.gold, lineWidth: 54)
+                .frame(width: 300, height: 300)
+                .offset(x: 170, y: -200)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Spacer()
+                Text("03")
+                    .font(.system(size: 82, weight: .black, design: .rounded))
+                    .tracking(-4)
+                Text("moments that\nchanged my direction")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                Text("SOLORA · JULY")
+                    .font(.caption2.weight(.black))
+                    .tracking(1.6)
+                    .opacity(0.56)
             }
-            withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.66)) {
-                progress = 0.94
+            .padding(22)
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .frame(width: 270, height: 430)
+    }
+
+    private var post: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                Circle().fill(SoloraTheme.coral).frame(width: 40, height: 40)
+                    .overlay { Text("A").font(.headline.bold()).foregroundStyle(.white) }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Amir").font(.subheadline.weight(.bold))
+                    Text("now").font(.caption).opacity(0.48)
+                }
+            }
+            Text("The best career progress is often a series of small moments.")
+                .font(.title3.weight(.bold))
+            Text(moments.first?.summary ?? "A new perspective became a useful next step.")
+                .font(.body)
+                .foregroundStyle(SoloraTheme.ink.opacity(0.66))
+            Text("#product #learning")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(SoloraTheme.coral)
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .padding(20)
+        .background(.white, in: RoundedRectangle(cornerRadius: 16))
+        .soloraHairline(radius: 16)
+    }
+
+    private var cv: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("AMIR DZAKWAN").font(.headline.weight(.black)).tracking(0.8)
+                    Text(target).font(.caption.weight(.semibold)).foregroundStyle(SoloraTheme.coral)
+                }
+                Spacer()
+                Text("01").font(.title2.monospacedDigit().weight(.black)).opacity(0.16)
+            }
+            Divider()
+            Text("SELECTED EXPERIENCE").font(.caption2.weight(.black)).tracking(1.4)
+            ForEach(moments.prefix(3)) { moment in
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(moment.title).font(.subheadline.weight(.bold))
+                    Text(moment.summary).font(.caption).foregroundStyle(SoloraTheme.ink.opacity(0.62))
+                }
             }
         }
-        .accessibilityHidden(true)
+        .foregroundStyle(SoloraTheme.ink)
+        .padding(22)
+        .frame(minHeight: 410, alignment: .top)
+        .background(.white, in: RoundedRectangle(cornerRadius: 10))
+        .soloraHairline(radius: 10)
+    }
+
+    private var interview: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("TALKING POINTS")
+                .font(.caption.weight(.black))
+                .tracking(1.6)
+                .foregroundStyle(SoloraTheme.gold)
+                .padding(.bottom, 20)
+
+            ForEach(Array(moments.prefix(3).enumerated()), id: \.element.id) { index, moment in
+                HStack(alignment: .top, spacing: 14) {
+                    Text("0\(index + 1)")
+                        .font(.caption.monospacedDigit().weight(.black))
+                        .foregroundStyle(SoloraTheme.coral)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(moment.title).font(.headline)
+                        Text(moment.summary).font(.caption).opacity(0.62)
+                    }
+                }
+                .padding(.vertical, 14)
+                if index < min(moments.count, 3) - 1 { Divider().overlay(Color.white.opacity(0.12)) }
+            }
+        }
+        .foregroundStyle(SoloraTheme.cream)
+        .padding(20)
+        .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var deck: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 16).fill(SoloraTheme.ink).offset(x: 8, y: 10)
+            RoundedRectangle(cornerRadius: 16).fill(SoloraTheme.gold).offset(x: 4, y: 5)
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 16).fill(SoloraTheme.coral)
+                Circle()
+                    .fill(SoloraTheme.cream)
+                    .frame(width: 180, height: 180)
+                    .offset(x: 220, y: -85)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("01 / 05").font(.caption2.weight(.black)).tracking(1.4).opacity(0.54)
+                    Spacer()
+                    Text("From moments\nto momentum.")
+                        .font(.system(size: 29, weight: .bold, design: .rounded))
+                }
+                .padding(20)
+            }
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .frame(height: 235)
+        .padding(.trailing, 8)
+        .padding(.bottom, 10)
     }
 }

@@ -7,36 +7,53 @@ struct RootTabView: View {
     let container: AppContainer
     let vibe: String
     let visualReference: String
+    let authenticatedUser: AuthenticatedUser
+    let signOut: () -> Void
     @State private var moments: [SoloraMoment]
     @State private var selection: RootTab
 
     init(
         container: AppContainer,
         vibe: String = "Warm & reflective",
-        visualReference: String = "Inside Out orbs"
+        visualReference: String = "Inside Out orbs",
+        authenticatedUser: AuthenticatedUser = .demo,
+        signOut: @escaping () -> Void = {}
     ) {
         self.container = container
         self.vibe = vibe
         self.visualReference = visualReference
+        self.authenticatedUser = authenticatedUser
+        self.signOut = signOut
         _moments = State(initialValue: container.moments)
         _selection = State(initialValue: RootTab.launchSelection)
     }
 
     var body: some View {
         TabView(selection: $selection) {
-            TodayView(moments: moments, onSave: saveReflection).tabItem { Label("Today", systemImage: "sun.max.fill") }.tag(RootTab.today)
-            ArchiveView(moments: moments).tabItem { Label("Archive", systemImage: "archivebox.fill") }.tag(RootTab.archive)
-            CreateView().tabItem { Label("Create", systemImage: "plus.circle.fill") }.tag(RootTab.create)
+            TodayView(moments: moments, onSave: saveReflection)
+                .tabItem { Label("Now", systemImage: "circle.fill") }
+                .tag(RootTab.now)
+
             WorldView(
                 manifest: container.worldManifest,
                 moments: moments,
                 vibe: vibe,
                 visualReference: visualReference
             )
-            .tabItem { Label("World", systemImage: "sparkles") }
-            .tag(RootTab.world)
-            YouView(vibe: vibe, visualReference: visualReference)
-                .tabItem { Label("You", systemImage: "person.crop.circle.fill") }
+            .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
+            .tag(RootTab.lore)
+
+            CreateView(moments: moments)
+                .tabItem { Label("Share", systemImage: "wand.and.rays") }
+                .tag(RootTab.share)
+
+            YouView(
+                vibe: vibe,
+                visualReference: visualReference,
+                authenticatedUser: authenticatedUser,
+                signOut: signOut
+            )
+                .tabItem { Label("You", systemImage: "person.fill") }
                 .tag(RootTab.you)
         }
         .tint(SoloraTheme.coral)
@@ -54,15 +71,23 @@ struct RootTabView: View {
 }
 
 private enum RootTab: String {
-    case today, archive, create, world, you
+    case now, lore, share, you
 
     static var launchSelection: Self {
         let arguments = ProcessInfo.processInfo.arguments
         guard let flagIndex = arguments.firstIndex(of: "-demoTab"),
-              arguments.indices.contains(flagIndex + 1),
-              let tab = Self(rawValue: arguments[flagIndex + 1]) else {
-            return .today
+              arguments.indices.contains(flagIndex + 1) else {
+            return .lore
         }
-        return tab
+
+        let requestedTab = arguments[flagIndex + 1]
+        if let tab = Self(rawValue: requestedTab) { return tab }
+
+        switch requestedTab {
+        case "today": return .now
+        case "archive", "world": return .lore
+        case "create": return .share
+        default: return .lore
+        }
     }
 }

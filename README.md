@@ -10,9 +10,9 @@ The native iOS demo is ready for rehearsal. Its golden path is:
 
 1. Watch `GPT-5.6 Sol + Lore + Aura` resolve into **Solora**.
 2. Choose a vibe and enter the demo-ready CV + Calendar world.
-3. On Today, turn the finished workshop into a Solora and verify it in Archive.
-4. In World, compare Memory Shelves, Career Fridge, and Quest Map.
-5. In Create, match archive evidence to a Product role and preview the CV, interview, presentation, LinkedIn, and Instagram outputs.
+3. In **Now**, keep the finished workshop and watch it condense into a piece of lore.
+4. In **Lore**, move through the living spatial world, open a memory, then switch its form between Core Room, Constellation, and Career Fridge.
+5. In **Share**, select real memories and watch the same orbs gather, orbit, and unfold as a Story, post, CV, talking points, or deck.
 
 All judge-facing generation is deterministic and local, so the demo remains reliable without network access. Firebase is connected for the production boundary; Firestore rules are deployed.
 
@@ -39,10 +39,18 @@ xcodebuild test -project Solora.xcodeproj -scheme Solora -destination 'platform=
 For deterministic rehearsal, launch directly into a tab after installing the app:
 
 ```sh
-xcrun simctl launch booted com.amirdzakwan.solora -skipOnboarding -demoTab world
+xcrun simctl launch booted com.amirdzakwan.solora -skipOnboarding -demoTab lore
 ```
 
-Supported demo tabs are `today`, `archive`, `create`, `world`, and `you`.
+Supported demo tabs are `now`, `lore`, `share`, and `you`. The legacy values `today`, `archive`, `world`, and `create` still map to their new equivalents for saved rehearsal scripts.
+
+## Google sign-in
+
+The app uses Google Sign-In to create and restore a Firebase Authentication session. The Google provider and iOS OAuth client are configured in the linked Firebase project; `GoogleService-Info.plist` and the callback URL scheme are tracked with the app configuration.
+
+If the iOS app is recreated in Firebase, download its refreshed `GoogleService-Info.plist`, update `GOOGLE_CLIENT_ID` and `GOOGLE_REVERSED_CLIENT_ID` in `project.yml`, then run `xcodegen generate`.
+
+The existing `-skipOnboarding` rehearsal flag also bypasses authentication so the offline demo remains deterministic. Use `-skipAuthentication` to exercise onboarding without signing in.
 
 ## Security
 

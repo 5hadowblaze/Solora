@@ -25,7 +25,8 @@ struct SoloraOrbView: View {
     }
 
     private func orb(at time: TimeInterval) -> some View {
-        let phase = time.truncatingRemainder(dividingBy: 20)
+        // Keep time continuous so the material never jumps at an arbitrary loop boundary.
+        let phase = time
         let breath = 1 + sin(phase * 0.9) * 0.018
         let highlightX = cos(phase * 0.72) * size * 0.06
         let highlightY = sin(phase * 0.58) * size * 0.045
