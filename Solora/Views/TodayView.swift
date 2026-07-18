@@ -118,9 +118,12 @@ struct TodayView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
-                    Text("04:02")
-                        .font(.system(size: 54, weight: .black, design: .rounded))
-                        .tracking(-2.2)
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Text(timeline.date.formatted(.dateTime.hour().minute().second()))
+                            .font(.system(size: 46, weight: .black, design: .rounded))
+                            .tracking(-1.6)
+                            .monospacedDigit()
+                    }
                     Spacer()
                     Image(systemName: "calendar")
                         .font(.system(size: 17, weight: .bold))
