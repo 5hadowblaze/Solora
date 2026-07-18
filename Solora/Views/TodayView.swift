@@ -368,7 +368,7 @@ private struct CaptureMomentSheet: View {
                                     .foregroundStyle(SoloraTheme.ink.opacity(0.56))
                             }
                             Spacer(minLength: 8)
-                            Button(voiceAnnotation.isRecording ? "Done" : "Record") {
+                            Button(voiceAnnotation.isRecording ? "Done" : (voiceAnnotation.isTranscribing ? "Listening…" : "Record")) {
                                 voiceAnnotation.toggle()
                             }
                             .font(.caption.weight(.bold))
@@ -376,7 +376,7 @@ private struct CaptureMomentSheet: View {
                             .padding(.horizontal, 14)
                             .frame(height: 36)
                             .background(voiceAnnotation.isRecording ? SoloraTheme.coral : SoloraTheme.ink.opacity(0.08), in: Capsule())
-                            .disabled(isSaving)
+                            .disabled(isSaving || voiceAnnotation.isTranscribing)
                         }
 
                         if !voiceAnnotation.transcript.isEmpty {
@@ -516,12 +516,13 @@ private struct CaptureMomentSheet: View {
 private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
     @Published private(set) var transcript = ""
     @Published private(set) var isRecording = false
+    @Published private(set) var isTranscribing = false
     @Published private(set) var errorMessage: String?
 
-    private let audioEngine = AVAudioEngine()
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private let recognizer = SFSpeechRecognizer()
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var audioRecorder: AVAudioRecorder?
+    private var recordingURL: URL?
     private var isStarting = false
 
     func toggle() {
@@ -529,7 +530,7 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
     }
 
     func start() {
-        guard !isRecording, !isStarting else { return }
+        guard !isRecording, !isStarting, !isTranscribing else { return }
         isStarting = true
         Task { @MainActor in
             defer { isStarting = false }
@@ -549,53 +550,66 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
             do {
                 try AVAudioSession.sharedInstance().setCategory(.record, mode: .measurement, options: [.duckOthers])
                 try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
-                let request = SFSpeechAudioBufferRecognitionRequest()
-                request.shouldReportPartialResults = true
-                recognitionRequest = request
                 recognitionTask?.cancel()
                 errorMessage = nil
                 transcript = ""
 
-                let input = audioEngine.inputNode
-                input.removeTap(onBus: 0)
-                let format = input.outputFormat(forBus: 0)
-                guard format.sampleRate > 0, format.channelCount > 0 else {
-                    throw VoiceAnnotationRecorderError.inputUnavailable
-                }
-                input.installTap(onBus: 0, bufferSize: 1_024, format: format) { [weak self] buffer, _ in
-                    self?.recognitionRequest?.append(buffer)
-                }
-
-                recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
-                    Task { @MainActor [weak self] in
-                        guard let self else { return }
-                        if let result {
-                            transcript = result.bestTranscription.formattedString
-                            if result.isFinal { stop() }
-                        }
-                        if error != nil, !transcript.isEmpty { stop() }
-                    }
-                }
-                audioEngine.prepare()
-                try audioEngine.start()
+                let url = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("solora-voice-(UUID().uuidString)")
+                    .appendingPathExtension("m4a")
+                let recorder = try AVAudioRecorder(
+                    url: url,
+                    settings: [
+                        AVFormatIDKey: kAudioFormatMPEG4AAC,
+                        AVSampleRateKey: 44_100,
+                        AVNumberOfChannelsKey: 1,
+                        AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                    ]
+                )
+                recorder.prepareToRecord()
+                guard recorder.record() else { throw VoiceAnnotationRecorderError.couldNotRecord }
+                recordingURL = url
+                audioRecorder = recorder
                 isRecording = true
             } catch {
-                stop()
+                audioRecorder?.stop()
+                audioRecorder = nil
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
                 errorMessage = "Solora could not start voice annotation. Please try again."
             }
         }
     }
 
     func stop() {
-        guard isRecording || audioEngine.isRunning else { return }
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        recognitionTask?.cancel()
-        recognitionTask = nil
+        guard isRecording else { return }
+        audioRecorder?.stop()
+        audioRecorder = nil
         isRecording = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        transcribeRecording()
+    }
+
+    private func transcribeRecording() {
+        guard let recordingURL else { return }
+        isTranscribing = true
+        errorMessage = nil
+        let request = SFSpeechURLRecognitionRequest(url: recordingURL)
+        request.shouldReportPartialResults = true
+        recognitionTask?.cancel()
+        recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if let result { self.transcript = result.bestTranscription.formattedString }
+                guard result?.isFinal == true || error != nil else { return }
+                self.isTranscribing = false
+                self.recognitionTask = nil
+                if self.transcript.isEmpty {
+                    self.errorMessage = "Solora couldn't hear a clear voice note. Try again somewhere quieter."
+                }
+                try? FileManager.default.removeItem(at: recordingURL)
+                self.recordingURL = nil
+            }
+        }
     }
 
     private static func hasSpeechPermission() async -> Bool {
@@ -629,7 +643,7 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
 }
 
 private enum VoiceAnnotationRecorderError: Error {
-    case inputUnavailable
+    case couldNotRecord
 }
 
 struct VoiceMemoryDraft: Decodable, Equatable {
