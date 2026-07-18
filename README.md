@@ -1,37 +1,22 @@
 # Solora:Codex Hackathon Submission 18th June 2026
 
-> Your life becomes your lore.
+> your life becomes your lore.
 
-Solora is a native iOS career-memory app that turns everyday work experiences into a living personal archive. People can capture useful moments while they are fresh, explore the evidence they have built over time, and reuse selected memories to create practical career materials.
+solora is a personal career universe: a place where the tiny moments that shape your work life—an idea, a win, a conversation, a lesson—become vivid memories you can revisit, connect, and turn into your next opportunity.
 
-## The experience
+## your career, told like a story
 
-- **Onboarding** introduces Solora's glass-orb visual language, lets each person choose their sources, energy, and preferred world, and presents a staged learning sequence before opening their personal space.
-- **Now** captures post-event reflections and saves them as career memories, with recent moments kept close at hand.
-- **Lore** combines a chronological archive with an interactive spatial world. Memories can be opened in detail, rearranged, and viewed as a Core Room, Constellation, or Career Fridge.
-- **Share** brings selected memories together as a Story, post, tailored CV, interview talking points, or deck preview.
-- **You** holds profile controls, connected-source preferences, world and vibe settings, and account actions.
+solora makes reflection feel more like collecting constellations than filling in a form. capture a thought while it is fresh, add a photo, and watch it become a glowing glass memory bubble inside your personal world. over time, those bubbles build a living picture of your skills, momentum, and the stories behind your career.
 
-Motion is central to the product: glass Solora orbs condense from captured experiences, respond inside the world, and gather, orbit, and unfold as memories move into new outputs. Reduced Motion is respected throughout these transitions.
+## inside solora
 
-## Accounts and persistence
+- **a guided beginning** — choose your energy, visual world, and the parts of your journey you want solora to learn from, then step into an onboarding flow designed to feel playful and personal.
+- **now** — turn post-event reflections, small wins, and big ideas into lasting career memories. add a photo and keep the feeling of the moment with it.
+- **lore** — explore your memories as a timeline and an interactive spatial world. drift through a colourful Core Room, map your growth across a night-sky constellation, or pin your proudest moments to a tactile Career Fridge.
+- **solora, your companion** — a persistent glass-orb presence that lives across the app, helps you move between experiences, and gathers your memories into whatever you need next.
+- **memory import** — bring in personal career context through a thoughtful ChatGPT memory prompt, then review and choose the insights that belong in your lore.
+- **connected moments** — bring calendar experiences into the story and turn completed events into reflections worth keeping.
+- **create & share** — select a handful of memories and transform them into a visual story, a social post, a tailored CV, elegant interview talking points, or a polished deck preview.
+- **your world, your style** — tune your vibe, sources, and world so solora feels like an extension of you.
 
-Google Sign-In creates and restores the user's Firebase Authentication session. Signed-in accounts read and write their private memory archive in Firestore at `users/{uid}/wins`, using a real-time listener and on-device cache so captures appear immediately and can sync after an offline period. Extended CV data is loaded from user-scoped Firestore documents when available.
-
-The repository also includes user-scoped Firestore security rules, Firebase App Check configuration, unit tests, and Firestore rules tests.
-
-## Local setup
-
-Requirements:
-
-- Xcode 26.6 or later
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
-
-Generate and open the project:
-
-```sh
-xcodegen generate
-open Solora.xcodeproj
-```
-
-Select the `Solora` scheme and run it on an iOS 17 or later simulator or device. The generated project resolves the Firebase and Google Sign-In packages declared in `project.yml`.
+every interaction is built around soft glass, luminous colour, and satisfying motion: memories condense into orbs, orbit together, and unfold into new possibilities. solora is where your lore, your aura, and your future start to connect.
