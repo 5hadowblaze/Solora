@@ -7,6 +7,7 @@ struct WorldView: View {
     let visualReference: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var pickerNamespace
     @State private var selection: WorldRecommendation
     @State private var arrangementVersion = 1
 
@@ -43,7 +44,7 @@ struct WorldView: View {
                                 .transition(worldTransition)
                         }
                     }
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: selection)
+                    .animation(reduceMotion ? nil : SoloraMotion.spatial, value: selection)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -68,17 +69,21 @@ struct WorldView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 12)
+        .soloraEntrance()
     }
 
     private var recommendationPicker: some View {
         HStack(spacing: 0) {
             ForEach(WorldRecommendation.allCases) { recommendation in
                 Button {
-                    selection = recommendation
+                    withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
+                        selection = recommendation
+                    }
                 } label: {
                     VStack(spacing: 5) {
                         Image(systemName: recommendation.symbol)
                             .font(.system(size: 15, weight: .semibold))
+                            .symbolEffect(.bounce, value: selection == recommendation)
                         Text(recommendation.shortTitle)
                             .font(.caption2.weight(.bold))
                             .lineLimit(1)
@@ -89,10 +94,11 @@ struct WorldView: View {
                         if selection == recommendation {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .fill(SoloraTheme.ink)
+                                .matchedGeometryEffect(id: "world-picker-selection", in: pickerNamespace)
                         }
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.98))
                 .accessibilityLabel("Show \(recommendation.title)")
                 .accessibilityHint(selection == recommendation ? "Currently selected" : "Switches the world layout")
                 .accessibilityAddTraits(selection == recommendation ? .isSelected : [])
@@ -101,10 +107,11 @@ struct WorldView: View {
         .padding(4)
         .background(SoloraTheme.ink.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .contain)
+        .soloraEntrance(index: 1)
     }
 
     private var worldTransition: AnyTransition {
-        reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97))
+        reduceMotion ? .opacity : .soloraReveal
     }
 }
 
@@ -144,6 +151,7 @@ private enum WorldRecommendation: String, CaseIterable, Identifiable {
 
 private struct MemoryShelvesWorld: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var memoryNamespace
     @Binding var arrangementVersion: Int
     let moments: [SoloraMoment]
 
@@ -187,13 +195,16 @@ private struct MemoryShelvesWorld: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Arrangement \(arrangementVersion)")
                         .font(.footnote.weight(.bold))
+                        .contentTransition(.numericText())
                     Text(arrangementDescription)
                         .font(.caption)
                         .foregroundStyle(SoloraTheme.ink.opacity(0.65))
                 }
                 Spacer(minLength: 8)
                 Button {
-                    arrangementVersion = arrangementVersion == 3 ? 1 : arrangementVersion + 1
+                    withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
+                        arrangementVersion = arrangementVersion == 3 ? 1 : arrangementVersion + 1
+                    }
                 } label: {
                     Label("Regenerate world", systemImage: "arrow.triangle.2.circlepath")
                         .font(.subheadline.weight(.bold))
@@ -202,13 +213,14 @@ private struct MemoryShelvesWorld: View {
                         .frame(minHeight: 46)
                         .background(SoloraTheme.coral, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SoloraPressButtonStyle())
                 .accessibilityHint("Reinterprets the same saved moments with a different grouping. No network is used.")
             }
             .foregroundStyle(SoloraTheme.ink)
             .padding(.top, 2)
         }
         .accessibilityElement(children: .contain)
+        .sensoryFeedback(.selection, trigger: arrangementVersion)
     }
 
     private var shelfStage: some View {
@@ -248,7 +260,11 @@ private struct MemoryShelvesWorld: View {
             HStack(alignment: .bottom, spacing: 9) {
                 ForEach(items) { memory in
                     VStack(spacing: 5) {
-                        SoloraOrbView(size: memory.size, color: memory.color)
+                        SoloraOrbView(
+                            size: memory.size,
+                            color: memory.color,
+                            isAlive: memory.id == memories.first?.id
+                        )
                             .shadow(color: memory.color.opacity(0.4), radius: 14, y: 5)
                         Text(memory.title)
                             .font(.caption2.weight(.bold))
@@ -263,6 +279,7 @@ private struct MemoryShelvesWorld: View {
                             .multilineTextAlignment(.center)
                             .frame(width: memory.size + 12)
                     }
+                    .matchedGeometryEffect(id: memory.id, in: memoryNamespace)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("\(memory.title), \(memory.summary). \(memory.skill) memory")
                     .accessibilityHint("An archived moment arranged by Solora")
@@ -270,7 +287,7 @@ private struct MemoryShelvesWorld: View {
             }
             .offset(x: offset, y: -6)
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.24), value: arrangementVersion)
+        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: arrangementVersion)
     }
 
     private var firstShelfCount: Int {
@@ -330,6 +347,7 @@ private struct CareerFridgeWorld: View {
                     .padding(15)
                     .background(SoloraTheme.cream, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                     .rotationEffect(.degrees(tile.id.hashValue.isMultiple(of: 2) ? -2 : 1))
+                    .soloraEntrance(index: tiles.firstIndex(where: { $0.id == tile.id }) ?? 0, distance: 14)
                 }
             }
             .padding(18)
@@ -371,6 +389,7 @@ private struct QuestMapWorld: View {
                         }
                         .padding(.top, 3)
                     }
+                    .soloraEntrance(index: index, distance: 12)
                 }
             }
             .padding(20)

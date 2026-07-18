@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 
 struct RootTabView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let container: AppContainer
     let vibe: String
     let visualReference: String
@@ -41,10 +43,12 @@ struct RootTabView: View {
     }
 
     private func saveReflection(_ reflection: String) {
-        moments.insert(
-            DemoFixtures.postEventReflection(id: UUID().uuidString, date: .now, reflection: reflection),
-            at: 0
-        )
+        withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
+            moments.insert(
+                DemoFixtures.postEventReflection(id: UUID().uuidString, date: .now, reflection: reflection),
+                at: 0
+            )
+        }
         UIAccessibility.post(notification: .announcement, argument: "Reflection saved to your archive")
     }
 }

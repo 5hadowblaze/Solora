@@ -17,6 +17,7 @@ struct SoloraApp: App {
 }
 
 private struct LaunchExperience: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hasEntered = ProcessInfo.processInfo.arguments.contains("-skipOnboarding")
     @State private var selectedVibe = "Warm & reflective"
     @State private var selectedVisualReference = "Inside Out orbs"
@@ -29,14 +30,16 @@ private struct LaunchExperience: View {
                     vibe: selectedVibe,
                     visualReference: selectedVisualReference
                 )
+                .transition(reduceMotion ? .opacity : .soloraReveal)
             } else {
                 SoloraOnboarding { vibe, visualReference in
                     selectedVibe = vibe
                     selectedVisualReference = visualReference
-                    withAnimation(.easeOut(duration: 0.28)) {
+                    withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.reveal) {
                         hasEntered = true
                     }
                 }
+                .transition(.opacity)
             }
         }
     }
@@ -72,7 +75,7 @@ private struct SoloraOnboarding: View {
                     if showSetup {
                         setup
                             .padding(.top, 30)
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            .transition(reduceMotion ? .opacity : .soloraReveal)
                     }
                 }
                 .padding(.bottom, 96)
@@ -117,15 +120,19 @@ private struct SoloraOnboarding: View {
     private var brandMoment: some View {
         VStack(spacing: 24) {
             ZStack {
-                Circle()
-                    .fill(coral)
-                    .frame(width: revealSolora ? 150 : 128, height: revealSolora ? 150 : 128)
-                    .overlay(Circle().stroke(gold, lineWidth: 3).padding(8))
-                    .shadow(color: coral.opacity(0.22), radius: 22, y: 12)
+                SoloraOrbView(
+                    size: 150,
+                    color: coral,
+                    isAlive: revealSolora,
+                    showsHalo: revealSolora
+                )
+                .scaleEffect(revealSolora ? 1 : 0.86)
 
                 Image(systemName: revealSolora ? "sparkle" : "wand.and.stars")
                     .font(.system(size: revealSolora ? 38 : 31, weight: .medium))
                     .foregroundStyle(cream)
+                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: revealSolora)
             }
             .accessibilityHidden(true)
 
@@ -149,7 +156,7 @@ private struct SoloraOnboarding: View {
             }
             .padding(.horizontal, 24)
         }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.28), value: revealSolora)
+        .animation(reduceMotion ? nil : SoloraMotion.spatial, value: revealSolora)
     }
 
     private var setup: some View {
@@ -160,7 +167,7 @@ private struct SoloraOnboarding: View {
             VStack(spacing: 8) {
                 ForEach(["Warm & reflective", "Bold & ambitious", "Playful & curious"], id: \.self) { vibe in
                     Button {
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
                             selectedVibe = vibe
                         }
                     } label: {
@@ -177,7 +184,7 @@ private struct SoloraOnboarding: View {
                         .overlay(RoundedRectangle(cornerRadius: 12).stroke(ink.opacity(selectedVibe == vibe ? 0.30 : 0.14), lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
                     .accessibilityAddTraits(selectedVibe == vibe ? .isSelected : [])
                 }
             }
@@ -205,7 +212,7 @@ private struct SoloraOnboarding: View {
 
     private func choiceChip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button {
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18), action)
+            withAnimation(reduceMotion ? nil : SoloraMotion.responsive, action)
         } label: {
             HStack(spacing: 6) {
                 if isSelected {
@@ -221,7 +228,7 @@ private struct SoloraOnboarding: View {
             .background(isSelected ? ink : ink.opacity(0.06))
             .clipShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.97))
         .accessibilityLabel(title)
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -257,11 +264,11 @@ private struct SoloraOnboarding: View {
         brandSequenceTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_050_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.28)) { revealSolora = true }
+            withAnimation(SoloraMotion.spatial) { revealSolora = true }
 
             try? await Task.sleep(nanoseconds: 570_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeOut(duration: 0.28)) { showSetup = true }
+            withAnimation(SoloraMotion.reveal) { showSetup = true }
         }
     }
 }
@@ -308,6 +315,8 @@ private struct FlowLayout: Layout {
 }
 
 private struct SoloraPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let ink: Color
     let gold: Color
 
@@ -319,7 +328,7 @@ private struct SoloraPrimaryButtonStyle: ButtonStyle {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(gold.opacity(0.8), lineWidth: 1))
             .shadow(color: ink.opacity(0.18), radius: configuration.isPressed ? 4 : 12, y: 6)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+            .scaleEffect(reduceMotion || !configuration.isPressed ? 1 : 0.97)
+            .animation(reduceMotion ? nil : SoloraMotion.quick, value: configuration.isPressed)
     }
 }

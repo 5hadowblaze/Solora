@@ -26,14 +26,9 @@ struct CreateView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     header
                     jobBrief
-                    switch phase {
-                    case .ready: evidencePrompt
-                    case .finding: findingEvidence
-                    case .complete:
-                        evidenceResults
-                        deliverables
-                        sharePreview
-                    }
+                    phaseContent
+                        .id(phase)
+                        .transition(reduceMotion ? .opacity : .soloraReveal)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
@@ -45,6 +40,22 @@ struct CreateView: View {
         .onDisappear {
             evidenceTask?.cancel()
             if case .finding = phase { phase = .ready }
+        }
+        .sensoryFeedback(.selection, trigger: selectedMemoryIDs)
+        .sensoryFeedback(.success, trigger: phase) { _, newPhase in newPhase == .complete }
+    }
+
+    @ViewBuilder
+    private var phaseContent: some View {
+        switch phase {
+        case .ready:
+            evidencePrompt
+        case .finding:
+            findingEvidence
+        case .complete:
+            evidenceResults
+            deliverables
+            sharePreview
         }
     }
 
@@ -81,7 +92,7 @@ struct CreateView: View {
             Text("Your archive already has the proof.").font(.title3.weight(.bold)).foregroundStyle(SoloraTheme.ink)
             Text("Find the moments that show product judgment, curiosity, and collaboration.").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.68))
             Button(action: findEvidence) { Label("Find my strongest evidence", systemImage: "sparkles").font(.headline).frame(maxWidth: .infinity).frame(minHeight: 52) }
-                .buttonStyle(.borderedProminent).tint(SoloraTheme.coral)
+                .buttonStyle(.borderedProminent).buttonBorderShape(.roundedRectangle(radius: 14)).tint(SoloraTheme.coral)
                 .accessibilityHint("Surfaces three ranked saved moments for this role")
         }
     }
@@ -89,13 +100,14 @@ struct CreateView: View {
     private var findingEvidence: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 14) {
-                ProgressView().tint(SoloraTheme.coral)
+                SoloraOrbView(size: 48, color: SoloraTheme.coral, isAlive: true, showsHalo: true)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Finding the threads that matter").font(.headline)
                     Text("Matching your brief to saved moments…").font(.subheadline).foregroundStyle(SoloraTheme.ink.opacity(0.64))
                 }
             }.foregroundStyle(SoloraTheme.ink)
-            Rectangle().fill(SoloraTheme.gold.opacity(0.35)).frame(height: 3).clipShape(Capsule())
+            SoloraProgressLine()
         }.padding(20).background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 20))
     }
 
@@ -106,6 +118,7 @@ struct CreateView: View {
             VStack(spacing: 0) {
                 ForEach(memories) { memory in
                     EvidenceRow(memory: memory, isSelected: selectedMemoryIDs.contains(memory.id)) { toggle(memory.id) }
+                        .soloraEntrance(index: memory.id - 1, distance: 8)
                     if memory.id != memories.last?.id { Divider().overlay(SoloraTheme.ink.opacity(0.10)) }
                 }
             }.background(.white.opacity(0.66), in: RoundedRectangle(cornerRadius: 20))
@@ -116,16 +129,20 @@ struct CreateView: View {
     private var deliverables: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Open your tailored materials").font(.title3.weight(.bold)).foregroundStyle(SoloraTheme.ink)
-            Button { selectPreview(.cv) } label: { DeliverableRow(icon: "doc.richtext", title: "Tailored CV", detail: "\(chosenMemories.count) evidence-led role-ready bullets", trailing: true) }.buttonStyle(.plain)
-            Button { selectPreview(.interview) } label: { DeliverableRow(icon: "quote.bubble", title: "Interview talking points", detail: "Concise STAR stories from your selected memories", trailing: true) }.buttonStyle(.plain)
-            Button { selectPreview(.presentation) } label: { DeliverableRow(icon: "rectangle.on.rectangle.angled", title: "Presentation", detail: "Demo preview · 5 slides that connect your story", trailing: true) }.buttonStyle(.plain)
+            Button { selectPreview(.cv) } label: { DeliverableRow(icon: "doc.richtext", title: "Tailored CV", detail: "\(chosenMemories.count) evidence-led role-ready bullets", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
+            Button { selectPreview(.interview) } label: { DeliverableRow(icon: "quote.bubble", title: "Interview talking points", detail: "Concise STAR stories from your selected memories", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
+            Button { selectPreview(.presentation) } label: { DeliverableRow(icon: "rectangle.on.rectangle.angled", title: "Presentation", detail: "Demo preview · 5 slides that connect your story", trailing: true) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
         }
     }
 
     private var sharePreview: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack { VStack(alignment: .leading, spacing: 3) { Text(selectedPreview.title).font(.headline); Text(selectedPreview.subtitle).font(.caption).foregroundStyle(SoloraTheme.cream.opacity(0.7)) }; Spacer(); Text("DEMO PREVIEW").font(.caption2.weight(.bold)).foregroundStyle(SoloraTheme.gold) }
-            previewCanvas
+            ZStack {
+                previewCanvas
+                    .id(selectedPreview)
+                    .transition(reduceMotion ? .opacity : .soloraReveal)
+            }
             HStack(spacing: 10) {
                 PreviewButton(kind: .linkedin, selected: selectedPreview == .linkedin, action: selectPreview)
                 PreviewButton(kind: .instagram, selected: selectedPreview == .instagram, action: selectPreview)
@@ -148,25 +165,29 @@ struct CreateView: View {
 
     private func findEvidence() {
         evidenceTask?.cancel()
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) { phase = .finding }
+        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) { phase = .finding }
         evidenceTask = Task {
             try? await Task.sleep(for: .milliseconds(700))
             guard !Task.isCancelled else { return }
-            await MainActor.run { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.32)) { phase = .complete } }
+            await MainActor.run { withAnimation(reduceMotion ? nil : SoloraMotion.reveal) { phase = .complete } }
         }
     }
-    private func toggle(_ id: Int) { if selectedMemoryIDs.contains(id) { selectedMemoryIDs.remove(id) } else { selectedMemoryIDs.insert(id) } }
+    private func toggle(_ id: Int) {
+        withAnimation(reduceMotion ? nil : SoloraMotion.responsive) {
+            if selectedMemoryIDs.contains(id) { selectedMemoryIDs.remove(id) } else { selectedMemoryIDs.insert(id) }
+        }
+    }
     private func resetDemo() { evidenceTask?.cancel(); roleBrief = Self.demoRoleBrief; selectedMemoryIDs = [1, 2, 3]; selectedPreview = .presentation; phase = .ready }
-    private func selectPreview(_ kind: PreviewKind) { withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { selectedPreview = kind } }
+    private func selectPreview(_ kind: PreviewKind) { withAnimation(reduceMotion ? nil : SoloraMotion.responsive) { selectedPreview = kind } }
 }
 
 private struct EvidenceMemory: Identifiable { let id: Int; let rank, title, reason, skills, cvBullet, starPoint: String }
 private struct EvidenceRow: View {
     let memory: EvidenceMemory; let isSelected: Bool; let action: () -> Void
-    var body: some View { Button(action: action) { HStack(alignment: .top, spacing: 14) { Image(systemName: isSelected ? "checkmark.square.fill" : "square").font(.title3).foregroundStyle(SoloraTheme.coral); Text(memory.rank).font(.caption.weight(.bold)).foregroundStyle(SoloraTheme.coral).frame(width: 24, alignment: .leading); VStack(alignment: .leading, spacing: 6) { Text(memory.title).font(.subheadline.weight(.semibold)); Text(memory.reason).font(.caption).opacity(0.68); Text(memory.skills).font(.caption2.weight(.semibold)).foregroundStyle(SoloraTheme.coral) }; Spacer(minLength: 0) }.foregroundStyle(SoloraTheme.ink).padding(16) }.buttonStyle(.plain).accessibilityLabel("\(isSelected ? "Selected" : "Not selected"). \(memory.rank). \(memory.title). \(memory.reason). Skills: \(memory.skills)") }
+    var body: some View { Button(action: action) { HStack(alignment: .top, spacing: 14) { Image(systemName: isSelected ? "checkmark.square.fill" : "square").font(.title3).foregroundStyle(SoloraTheme.coral).contentTransition(.symbolEffect(.replace)).symbolEffect(.bounce, value: isSelected); Text(memory.rank).font(.caption.weight(.bold)).foregroundStyle(SoloraTheme.coral).frame(width: 24, alignment: .leading); VStack(alignment: .leading, spacing: 6) { Text(memory.title).font(.subheadline.weight(.semibold)); Text(memory.reason).font(.caption).opacity(0.68); Text(memory.skills).font(.caption2.weight(.semibold)).foregroundStyle(SoloraTheme.coral) }; Spacer(minLength: 0) }.foregroundStyle(SoloraTheme.ink).padding(16) }.buttonStyle(SoloraPressButtonStyle(pressedScale: 0.99)).accessibilityLabel("\(isSelected ? "Selected" : "Not selected"). \(memory.rank). \(memory.title). \(memory.reason). Skills: \(memory.skills)") }
 }
 private struct DeliverableRow: View { let icon, title, detail: String; var trailing = false; var body: some View { HStack(spacing: 14) { Image(systemName: icon).font(.title3).foregroundStyle(SoloraTheme.coral).frame(width: 30); VStack(alignment: .leading, spacing: 3) { Text(title).font(.subheadline.weight(.semibold)); Text(detail).font(.caption).opacity(0.64) }; Spacer(); if trailing { Image(systemName: "chevron.right").font(.caption.weight(.bold)).opacity(0.45) } }.foregroundStyle(SoloraTheme.ink).padding(16).background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 16)) } }
-private enum CreatePhase { case ready, finding, complete }
+private enum CreatePhase: Hashable { case ready, finding, complete }
 private enum PreviewKind: Equatable {
     case cv, interview, presentation, linkedin, instagram
 
@@ -210,7 +231,40 @@ private struct PreviewButton: View {
             )
             .foregroundStyle(selected ? SoloraTheme.ink : SoloraTheme.cream)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.985))
         .accessibilityHint("Changes the local demo preview only; nothing will be published")
+    }
+}
+
+private struct SoloraProgressLine: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var progress: CGFloat = 0.08
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(SoloraTheme.gold.opacity(0.2))
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [SoloraTheme.coral, SoloraTheme.gold, .white, SoloraTheme.gold],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: max(12, proxy.size.width * progress))
+            }
+        }
+        .frame(height: 4)
+        .onAppear {
+            guard !reduceMotion else {
+                progress = 0.78
+                return
+            }
+            withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.66)) {
+                progress = 0.94
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

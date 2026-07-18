@@ -31,12 +31,14 @@ struct YouView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .soloraEntrance()
 
                         settingsSection("Connected sources") {
                             sourceRow("doc.text.fill", "Master CV", "Ready", SoloraTheme.coral)
                             Divider()
                             sourceRow("calendar", "Calendar", "Synced for demo", SoloraTheme.gold)
                         }
+                        .soloraEntrance(index: 1)
 
                         settingsSection("Your Solora") {
                             Label("Private by default", systemImage: "lock.fill")
@@ -45,11 +47,13 @@ struct YouView: View {
                             Divider()
                             Label("Vibe: \(vibe)", systemImage: "paintpalette.fill")
                         }
+                        .soloraEntrance(index: 2)
 
                         Text("Your memories stay yours. Solora only creates from the moments you choose.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 4)
+                            .soloraEntrance(index: 3)
                     }
                     .padding(18)
                 }

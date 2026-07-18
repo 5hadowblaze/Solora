@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ArchiveView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     let moments: [SoloraMoment]
     var body: some View {
         NavigationStack {
@@ -30,12 +32,15 @@ struct ArchiveView: View {
 
                         ForEach(Array(moments.enumerated()), id: \.element.id) { index, moment in
                             MomentRow(moment: moment, color: orbColors[index % orbColors.count])
+                                .transition(.soloraReveal)
+                                .soloraEntrance(index: index)
                         }
                     }
                     .padding(.horizontal, 18)
                     .padding(.top, 12)
                     .padding(.bottom, 28)
                 }
+                .animation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.spatial, value: moments.map(\.id))
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -47,7 +52,7 @@ struct ArchiveView: View {
 
     private func archiveStat(_ value: String, _ label: String) -> some View {
         VStack(spacing: 2) {
-            Text(value).font(.title3.bold())
+            Text(value).font(.title3.bold()).contentTransition(.numericText())
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)

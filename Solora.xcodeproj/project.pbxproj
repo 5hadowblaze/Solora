@@ -26,6 +26,7 @@
 		C7E8E522332A851C969074FB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 7C57C4994D9BCA8D5C954C30 /* GoogleService-Info.plist */; };
 		CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */; };
 		E230C788A5A1CE6501B78A77 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = C0126FCB76E45A11F248BF6E /* FirebaseCore */; };
+		EEDB14F440A42482100A55D0 /* SoloraMotion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 826EB1B58456307F246D3C59 /* SoloraMotion.swift */; };
 		F2758B84D220ECCAC3130418 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A7498CE393EABC550BBD3558 /* FirebaseFunctions */; };
 		F2B04A30F4B0519E286A9536 /* CreateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F935C77084A31476F0C5C29 /* CreateView.swift */; };
 /* End PBXBuildFile section */
@@ -50,6 +51,7 @@
 		60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
 		71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraTheme.swift; sourceTree = "<group>"; };
 		7C57C4994D9BCA8D5C954C30 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		826EB1B58456307F246D3C59 /* SoloraMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMotion.swift; sourceTree = "<group>"; };
 		A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraOrbView.swift; sourceTree = "<group>"; };
 		AEBDABE84210833189CE7553 /* WorldKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldKind.swift; sourceTree = "<group>"; };
 		AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMomentTests.swift; sourceTree = "<group>"; };
@@ -135,6 +137,7 @@
 		C6A9AA62D941AB8EFF9B3C64 /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				826EB1B58456307F246D3C59 /* SoloraMotion.swift */,
 				A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */,
 				71640D43EA8DD3CEE283DE35 /* SoloraTheme.swift */,
 			);
@@ -272,6 +275,7 @@
 				C3015A57471B3149A1DB4129 /* RootTabView.swift in Sources */,
 				AD5B436B5BF645C31918D690 /* SoloraApp.swift in Sources */,
 				A808D9B28D39F61A613F44E7 /* SoloraMoment.swift in Sources */,
+				EEDB14F440A42482100A55D0 /* SoloraMotion.swift in Sources */,
 				CCC16FA42A9C115BC367D600 /* SoloraOrbView.swift in Sources */,
 				7AFD4A894D0BBF59B34267DF /* SoloraTheme.swift in Sources */,
 				66DE158895AEDB88F84610F8 /* TodayView.swift in Sources */,
