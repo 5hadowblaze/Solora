@@ -54,6 +54,12 @@ enum SoloraRealtimeConnectionState: Equatable, Sendable {
     }
 }
 
+enum SoloraVoiceActivity: Equatable, Sendable {
+    case idle
+    case listening
+    case speaking
+}
+
 enum SoloraRealtimeError: LocalizedError {
     case microphoneDenied
     case invalidCredential
@@ -84,6 +90,7 @@ final class SoloraRealtimeSession: NSObject, ObservableObject {
     @Published private(set) var state: SoloraRealtimeConnectionState = .idle
     @Published private(set) var isMuted = false
     @Published private(set) var lastTranscript = ""
+    @Published private(set) var voiceActivity: SoloraVoiceActivity = .idle
 
     var toolHandler: ToolHandler?
 
@@ -125,6 +132,7 @@ final class SoloraRealtimeSession: NSObject, ObservableObject {
         connectionTask?.cancel()
         connectionTask = nil
         tearDown()
+        voiceActivity = .idle
         state = .idle
     }
 
@@ -151,6 +159,7 @@ final class SoloraRealtimeSession: NSObject, ObservableObject {
                 return
             } catch {
                 tearDown()
+                voiceActivity = .idle
                 state = .failed(Self.userFacingMessage(for: error))
             }
         }
@@ -286,6 +295,15 @@ final class SoloraRealtimeSession: NSObject, ObservableObject {
             lastTranscript = transcript
         }
 
+        switch type {
+        case "input_audio_buffer.speech_started", "input_audio_buffer.speech_stopped", "response.done":
+            voiceActivity = .listening
+        case "response.audio.delta", "response.output_audio.delta", "response.output_audio_transcript.delta":
+            voiceActivity = .speaking
+        default:
+            break
+        }
+
         guard let call = SoloraRealtimeToolCodec.functionCall(from: event),
               handledCallIDs.insert(call.callID).inserted else { return }
         let result: SoloraAssistantToolResult
@@ -370,6 +388,7 @@ extension SoloraRealtimeSession: RTCDataChannelDelegate {
             case .open:
                 recoveryAttempt = 0
                 state = .connected
+                voiceActivity = .listening
                 sendSessionConfiguration()
             case .closing, .closed:
                 recoverIfNeeded()

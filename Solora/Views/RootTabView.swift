@@ -66,11 +66,11 @@ struct RootTabView: View {
                 .tag(SoloraAppSurface.you)
         }
         .tint(SoloraTheme.coral)
-        .overlay(alignment: .bottomTrailing) {
+        .overlay(alignment: .topTrailing) {
             if assistantStore.canShowRootBubble {
-                SoloraAssistantBubble(store: assistantStore, realtimeSession: assistantStore.realtimeSession)
-                    .padding(.trailing, 14)
-                    .padding(.bottom, 70)
+                SoloraAssistantIsland(store: assistantStore, realtimeSession: assistantStore.realtimeSession)
+                    .padding(.top, 8)
+                    .padding(.trailing, 16)
                     .transition(reduceMotion ? .opacity : .soloraReveal)
             }
         }

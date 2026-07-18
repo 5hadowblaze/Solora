@@ -1,35 +1,118 @@
 import SwiftUI
 
-struct SoloraAssistantBubble: View {
+struct SoloraAssistantIsland: View {
     @ObservedObject var store: SoloraAssistantStore
     @ObservedObject var realtimeSession: SoloraRealtimeSession
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isAnimating = false
+
+    private var isLive: Bool {
+        realtimeSession.state.isActive
+    }
 
     var body: some View {
-        Button(action: store.presentPanel) {
-            ZStack(alignment: .bottomTrailing) {
+        Button {
+            if isLive {
+                store.presentPanel()
+            } else {
+                realtimeSession.start()
+            }
+        } label: {
+            HStack(spacing: isLive ? 12 : 8) {
                 SoloraOrbView(
-                    size: 62,
-                    color: SoloraTheme.lavender,
+                    size: isLive ? 34 : 28,
+                    color: realtimeSession.voiceActivity == .speaking ? SoloraTheme.gold : SoloraTheme.lavender,
                     isAlive: true,
-                    showsHalo: true
+                    showsHalo: isLive
                 )
                 .accessibilityHidden(true)
 
-                Image(systemName: realtimeSession.state == .connected ? "waveform" : "sparkles")
-                    .font(.system(size: 10, weight: .black))
-                    .foregroundStyle(SoloraTheme.cream)
-                    .frame(width: 22, height: 22)
-                    .background(SoloraTheme.ink, in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.32), lineWidth: 1))
+                if isLive {
+                    SoloraVoiceWave(
+                        activity: realtimeSession.voiceActivity,
+                        isMuted: realtimeSession.isMuted,
+                        isAnimating: isAnimating
+                    )
+                    Text(activityTitle)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(SoloraTheme.cream.opacity(0.94))
+                        .lineLimit(1)
+                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                } else {
+                    Text("Solora")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(SoloraTheme.cream.opacity(0.92))
+                }
             }
-            .frame(width: 72, height: 72)
+            .padding(.horizontal, isLive ? 16 : 12)
+            .frame(width: isLive ? 252 : 104, height: 48)
+            .background(islandSurface)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(.white.opacity(isLive ? 0.40 : 0.26), lineWidth: 1))
+            .shadow(color: SoloraTheme.lavender.opacity(isLive ? 0.34 : 0.18), radius: isLive ? 20 : 12, y: 8)
         }
-        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.96))
-        .accessibilityLabel(realtimeSession.state == .connected ? "Open Solora voice companion, connected" : "Open Solora voice companion")
-        .accessibilityHint("Opens voice, local memory, reflection, and navigation tools")
+        .buttonStyle(SoloraPressButtonStyle(pressedScale: 0.97))
+        .accessibilityLabel(isLive ? "Solora voice, \(activityTitle)" : "Start Solora voice")
+        .accessibilityHint(isLive ? "Opens voice controls" : "Starts a voice conversation with Solora")
+        .animation(reduceMotion ? .easeOut(duration: 0.16) : .spring(response: 0.46, dampingFraction: 0.78), value: isLive)
+        .animation(reduceMotion ? .easeOut(duration: 0.16) : .easeInOut(duration: 0.28), value: realtimeSession.voiceActivity)
+        .onAppear { isAnimating = !reduceMotion }
+    }
+
+    private var activityTitle: String {
+        if realtimeSession.isMuted { return "Muted" }
+        switch realtimeSession.state {
+        case .requestingMicrophone: return "Allow microphone"
+        case .connecting, .recovering: return "Joining you…"
+        default:
+            return realtimeSession.voiceActivity == .speaking ? "Solora is speaking" : "Listening…"
+        }
+    }
+
+    private var islandSurface: some View {
+        ZStack {
+            Capsule().fill(.ultraThinMaterial)
+            LinearGradient(
+                colors: [SoloraTheme.ink.opacity(0.92), SoloraTheme.lavender.opacity(0.72), SoloraTheme.ink.opacity(0.94)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .opacity(isLive ? 0.94 : 0.80)
+        }
     }
 }
 
+private struct SoloraVoiceWave: View {
+    let activity: SoloraVoiceActivity
+    let isMuted: Bool
+    let isAnimating: Bool
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<5, id: \.self) { index in
+                Capsule()
+                    .fill(isMuted ? SoloraTheme.cream.opacity(0.36) : SoloraTheme.cream)
+                    .frame(width: 3, height: 18)
+                    .scaleEffect(y: scale(for: index), anchor: .center)
+                    .animation(
+                        isAnimating && !isMuted
+                            ? .easeInOut(duration: 0.38 + Double(index) * 0.06).repeatForever(autoreverses: true)
+                            : .default,
+                        value: isAnimating
+                    )
+            }
+        }
+        .frame(width: 28, height: 22)
+        .accessibilityHidden(true)
+    }
+
+    private func scale(for index: Int) -> CGFloat {
+        guard isAnimating, !isMuted else { return 0.36 }
+        let speakingHeights: [CGFloat] = [0.55, 0.92, 1.0, 0.80, 0.52]
+        let listeningHeights: [CGFloat] = [0.34, 0.54, 0.72, 0.52, 0.34]
+        return activity == .speaking ? speakingHeights[index] : listeningHeights[index]
+    }
+}
 struct SoloraAssistantPanel: View {
     @ObservedObject var store: SoloraAssistantStore
     @ObservedObject var realtimeSession: SoloraRealtimeSession
