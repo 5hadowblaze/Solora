@@ -19,4 +19,22 @@ final class SoloraMomentTests: XCTestCase {
         let world = try JSONDecoder().decode(WorldKind.self, from: Data("\"future-world\"".utf8))
         XCTAssertEqual(world, .memoryShelves)
     }
+
+    func testPostEventReflectionUsesTypedReflection() {
+        let moment = DemoFixtures.postEventReflection(
+            id: "saved-event",
+            date: Date(timeIntervalSince1970: 1_720_172_800),
+            reflection: "  I clarified the launch decision.  "
+        )
+
+        XCTAssertEqual(moment.id, "saved-event")
+        XCTAssertEqual(moment.title, "Product strategy workshop")
+        XCTAssertEqual(moment.summary, "I clarified the launch decision.")
+    }
+
+    func testPostEventReflectionUsesDefaultSummaryWhenBlank() {
+        let moment = DemoFixtures.postEventReflection(id: "saved-event", date: .distantPast, reflection: " \n ")
+
+        XCTAssertEqual(moment.summary, "Captured a post-event reflection and a useful next step.")
+    }
 }

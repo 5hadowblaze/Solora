@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TodayView: View {
     let moments: [SoloraMoment]
+    let onSave: (String) -> Void
     @State private var showsPostEventPrompt = false
     @State private var savedReflection = false
 
@@ -23,7 +24,8 @@ struct TodayView: View {
             }
             .navigationTitle("Today")
             .sheet(isPresented: $showsPostEventPrompt) {
-                PostEventReflectionView {
+                PostEventReflectionView { reflection in
+                    onSave(reflection)
                     savedReflection = true
                     showsPostEventPrompt = false
                 }
@@ -43,7 +45,7 @@ struct TodayView: View {
 }
 
 private struct PostEventReflectionView: View {
-    let onSave: () -> Void
+    let onSave: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var reflection = ""
 
@@ -74,7 +76,7 @@ private struct PostEventReflectionView: View {
                     Button("Not now") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save reflection") { onSave() }
+                    Button("Save reflection") { onSave(reflection) }
                         .accessibilityHint("Saves this sample reflection to your archive")
                 }
             }

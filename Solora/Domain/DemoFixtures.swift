@@ -12,4 +12,17 @@ enum DemoFixtures {
         subtitle: "The evidence that makes up your lore.",
         shelves: ["Wins", "People", "Craft"]
     )
+
+    static func postEventReflection(id: String, date: Date, reflection: String) -> SoloraMoment {
+        let trimmedReflection = reflection.trimmingCharacters(in: .whitespacesAndNewlines)
+        return SoloraMoment(
+            id: id,
+            title: "Product strategy workshop",
+            summary: trimmedReflection.isEmpty
+                ? "Captured a post-event reflection and a useful next step."
+                : trimmedReflection,
+            date: date,
+            world: .memoryShelves
+        )
+    }
 }
