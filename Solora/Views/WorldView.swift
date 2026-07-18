@@ -1005,6 +1005,7 @@ private struct MemoryDetail: View {
     let onDelete: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showsDeleteConfirmation = false
 
     var body: some View {
         ZStack {
@@ -1090,13 +1091,27 @@ private struct MemoryDetail: View {
                 }
                 .buttonStyle(SoloraPressButtonStyle())
 
-                SwipeToDeleteMemory(action: onDelete)
+                Button(role: .destructive) {
+                    showsDeleteConfirmation = true
+                } label: {
+                    Label("Delete memory", systemImage: "trash")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
                     .padding(.top, 12)
             }
             .foregroundStyle(SoloraTheme.ink)
             .padding(20)
         }
         .accessibilityElement(children: .contain)
+        .sheet(isPresented: $showsDeleteConfirmation) {
+            DeleteMemoryConfirmationSheet(title: moment.title, onDelete: onDelete)
+                .presentationDetents([.height(290)])
+                .presentationDragIndicator(.visible)
+        }
     }
 
     private var thread: String {
@@ -1114,6 +1129,42 @@ private struct MemoryDetail: View {
             Text(value)
                 .font(.subheadline.weight(.bold))
         }
+    }
+}
+
+private struct DeleteMemoryConfirmationSheet: View {
+    let title: String
+    let onDelete: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "trash.fill")
+                .font(.system(size: 25, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 58, height: 58)
+                .background(Color.red, in: Circle())
+
+            VStack(spacing: 6) {
+                Text("Delete this memory?")
+                    .font(.title3.weight(.bold))
+                Text("\(title) will be removed from your lore.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.58))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            SwipeToDeleteMemory {
+                dismiss()
+                onDelete()
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 14)
+        .foregroundStyle(SoloraTheme.ink)
+        .presentationBackground(SoloraTheme.cream)
     }
 }
 
