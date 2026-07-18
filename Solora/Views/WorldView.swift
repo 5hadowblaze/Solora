@@ -148,7 +148,7 @@ private struct MemoryShelvesWorld: View {
     let moments: [SoloraMoment]
 
     private var memories: [ShelfMemory] {
-        let source = moments.isEmpty ? DemoFixtures.moments : moments
+        let source = Array((moments.isEmpty ? DemoFixtures.moments : moments).prefix(5))
         let ordered: [SoloraMoment]
         switch arrangementVersion {
         case 2: ordered = source.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
@@ -275,7 +275,7 @@ private struct MemoryShelvesWorld: View {
 
     private var firstShelfCount: Int {
         guard memories.count > 1 else { return memories.count }
-        return arrangementVersion == 2 ? max(1, memories.count - 1) : (memories.count + 1) / 2
+        return min(2, memories.count)
     }
 
     private var arrangementDescription: String {
