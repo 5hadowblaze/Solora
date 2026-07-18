@@ -33,7 +33,7 @@ struct WorldView: View {
                     ZStack {
                         switch selection {
                         case .memoryShelves:
-                            MemoryShelvesWorld(moments: moments, arrangementVersion: $arrangementVersion)
+                            MemoryShelvesWorld(arrangementVersion: $arrangementVersion, moments: moments)
                                 .transition(worldTransition)
                         case .careerFridge:
                             CareerFridgeWorld(moments: moments)

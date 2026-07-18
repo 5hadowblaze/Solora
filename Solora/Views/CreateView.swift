@@ -187,3 +187,27 @@ private enum PreviewKind: Equatable {
         }
     }
 }
+
+private struct PreviewButton: View {
+    let kind: PreviewKind
+    let selected: Bool
+    let action: (PreviewKind) -> Void
+
+    var body: some View {
+        Button { action(kind) } label: {
+            Label(
+                kind == .linkedin ? "LinkedIn" : "Instagram Story",
+                systemImage: kind == .linkedin ? "link" : "camera"
+            )
+            .font(.caption.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(
+                selected ? SoloraTheme.cream : SoloraTheme.cream.opacity(0.15),
+                in: RoundedRectangle(cornerRadius: 12)
+            )
+            .foregroundStyle(selected ? SoloraTheme.ink : SoloraTheme.cream)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Changes the local demo preview only; nothing will be published")
+    }
+}

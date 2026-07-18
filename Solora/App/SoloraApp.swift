@@ -18,13 +18,21 @@ struct SoloraApp: App {
 
 private struct LaunchExperience: View {
     @State private var hasEntered = ProcessInfo.processInfo.arguments.contains("-skipOnboarding")
+    @State private var selectedVibe = "Warm & reflective"
+    @State private var selectedVisualReference = "Inside Out orbs"
 
     var body: some View {
         Group {
             if hasEntered {
-                RootTabView(container: .demo)
+                RootTabView(
+                    container: .demo,
+                    vibe: selectedVibe,
+                    visualReference: selectedVisualReference
+                )
             } else {
-                SoloraOnboarding {
+                SoloraOnboarding { vibe, visualReference in
+                    selectedVibe = vibe
+                    selectedVisualReference = visualReference
                     withAnimation(.easeOut(duration: 0.28)) {
                         hasEntered = true
                     }
@@ -42,7 +50,7 @@ private struct SoloraOnboarding: View {
     @State private var selectedVisualReference = "Inside Out orbs"
     @State private var brandSequenceTask: Task<Void, Never>?
 
-    let enter: () -> Void
+    let enter: (String, String) -> Void
 
     private let ink = Color(red: 0.13, green: 0.08, blue: 0.07)
     private let cream = Color(red: 0.99, green: 0.94, blue: 0.84)
@@ -70,7 +78,9 @@ private struct SoloraOnboarding: View {
                 .padding(.bottom, 96)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button(action: enter) {
+                Button {
+                    enter(selectedVibe, selectedVisualReference)
+                } label: {
                     HStack(spacing: 10) {
                         Text("Enter my world")
                         Image(systemName: "arrow.right")

@@ -3,11 +3,19 @@ import UIKit
 
 struct RootTabView: View {
     let container: AppContainer
+    let vibe: String
+    let visualReference: String
     @State private var moments: [SoloraMoment]
     @State private var selection: RootTab
 
-    init(container: AppContainer) {
+    init(
+        container: AppContainer,
+        vibe: String = "Warm & reflective",
+        visualReference: String = "Inside Out orbs"
+    ) {
         self.container = container
+        self.vibe = vibe
+        self.visualReference = visualReference
         _moments = State(initialValue: container.moments)
         _selection = State(initialValue: RootTab.launchSelection)
     }
@@ -17,7 +25,14 @@ struct RootTabView: View {
             TodayView(moments: moments, onSave: saveReflection).tabItem { Label("Today", systemImage: "sun.max.fill") }.tag(RootTab.today)
             ArchiveView(moments: moments).tabItem { Label("Archive", systemImage: "archivebox.fill") }.tag(RootTab.archive)
             CreateView().tabItem { Label("Create", systemImage: "plus.circle.fill") }.tag(RootTab.create)
-            WorldView(manifest: container.worldManifest).tabItem { Label("World", systemImage: "sparkles") }.tag(RootTab.world)
+            WorldView(
+                manifest: container.worldManifest,
+                moments: moments,
+                vibe: vibe,
+                visualReference: visualReference
+            )
+            .tabItem { Label("World", systemImage: "sparkles") }
+            .tag(RootTab.world)
             YouView().tabItem { Label("You", systemImage: "person.crop.circle.fill") }.tag(RootTab.you)
         }
         .tint(SoloraTheme.coral)
