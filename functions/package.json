@@ -1,0 +1,19 @@
+{
+  "name": "solora-functions",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --import tsx --test src/index.test.ts"
+  },
+  "dependencies": {
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
