@@ -1,0 +1,16 @@
+.DS_Store
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+.build/
+functions/node_modules/
+functions/lib/
+firebase-debug.log
+.firebase/
+.env
+.env.*
+!.env.example
+GoogleService-Info.plist.bak
+.worktrees/
