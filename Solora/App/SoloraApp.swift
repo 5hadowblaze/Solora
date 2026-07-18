@@ -17,7 +17,7 @@ struct SoloraApp: App {
 }
 
 private struct LaunchExperience: View {
-    @State private var hasEntered = false
+    @State private var hasEntered = ProcessInfo.processInfo.arguments.contains("-skipOnboarding")
 
     var body: some View {
         Group {
