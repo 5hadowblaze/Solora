@@ -58,6 +58,16 @@ enum FirebaseMomentRepository {
         }
     }
 
+    static func deleteMoment(
+        id: String,
+        userID: String,
+        completion: @escaping (String?) -> Void
+    ) {
+        collection(userID: userID).document(id).delete { error in
+            completion(error.map(userFacingMessage(for:)))
+        }
+    }
+
     static func moment(documentID: String, data: [String: Any]) -> SoloraMoment? {
         guard let title = nonEmptyString(data["title"]) else { return nil }
 
@@ -212,6 +222,27 @@ final class MomentStore: ObservableObject {
         errorMessage = nil
     }
 
+    @discardableResult
+    func delete(_ moment: SoloraMoment) -> Bool {
+        errorMessage = nil
+
+        switch backend {
+        case .demo:
+            removeOptimistically(moment.id)
+            return true
+        case .firestore(let userID):
+            FirebaseMomentRepository.deleteMoment(id: moment.id, userID: userID) { [weak self] message in
+                guard let message else { return }
+                Task { @MainActor [weak self] in
+                    self?.errorMessage = message
+                }
+            }
+            removeOptimistically(moment.id)
+            hasPendingWrites = true
+            return true
+        }
+    }
+
     private func apply(_ event: MomentRepositoryEvent) {
         isLoading = false
         switch event {
@@ -228,6 +259,10 @@ final class MomentStore: ObservableObject {
         moments.removeAll { $0.id == moment.id }
         moments.append(moment)
         moments.sort { $0.date > $1.date }
+    }
+
+    private func removeOptimistically(_ identifier: String) {
+        moments.removeAll { $0.id == identifier }
     }
 }
 

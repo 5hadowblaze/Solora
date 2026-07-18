@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -521,15 +522,23 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private let recognizer = SFSpeechRecognizer()
     private var recognitionTask: SFSpeechRecognitionTask?
+    private var isStarting = false
 
     func toggle() {
         isRecording ? stop() : start()
     }
 
     func start() {
+        guard !isRecording, !isStarting else { return }
+        isStarting = true
         Task { @MainActor in
+            defer { isStarting = false }
             guard await Self.hasSpeechPermission() else {
                 errorMessage = "Allow Speech Recognition to annotate a memory by voice."
+                return
+            }
+            guard await Self.hasMicrophonePermission() else {
+                errorMessage = "Allow Microphone access to annotate a memory by voice."
                 return
             }
             guard recognizer?.isAvailable == true else {
@@ -550,6 +559,9 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
                 let input = audioEngine.inputNode
                 input.removeTap(onBus: 0)
                 let format = input.outputFormat(forBus: 0)
+                guard format.sampleRate > 0, format.channelCount > 0 else {
+                    throw VoiceAnnotationRecorderError.inputUnavailable
+                }
                 input.installTap(onBus: 0, bufferSize: 1_024, format: format) { [weak self] buffer, _ in
                     self?.recognitionRequest?.append(buffer)
                 }
@@ -599,6 +611,25 @@ private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
         @unknown default: return false
         }
     }
+
+    private static func hasMicrophonePermission() async -> Bool {
+        let session = AVAudioSession.sharedInstance()
+        switch session.recordPermission {
+        case .granted: return true
+        case .denied: return false
+        case .undetermined:
+            return await withCheckedContinuation { continuation in
+                session.requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
+            }
+        @unknown default: return false
+        }
+    }
+}
+
+private enum VoiceAnnotationRecorderError: Error {
+    case inputUnavailable
 }
 
 struct VoiceMemoryDraft: Decodable, Equatable {

@@ -6,6 +6,7 @@ struct WorldView: View {
     let vibe: String
     let visualReference: String
     let focusMemoryID: String?
+    let onDelete: (SoloraMoment) -> Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var memoryNamespace
@@ -23,13 +24,15 @@ struct WorldView: View {
         moments: [SoloraMoment] = DemoFixtures.moments,
         vibe: String = "thoughtful",
         visualReference: String = "Inside Out orbs",
-        focusMemoryID: String? = nil
+        focusMemoryID: String? = nil,
+        onDelete: @escaping (SoloraMoment) -> Bool = { _ in true }
     ) {
         self.manifest = manifest
         self.moments = moments
         self.vibe = vibe
         self.visualReference = visualReference
         self.focusMemoryID = focusMemoryID
+        self.onDelete = onDelete
         _skin = State(initialValue: LoreSkin.initial(for: visualReference))
         _selectedID = State(initialValue: moments.first?.id)
     }
@@ -87,7 +90,8 @@ struct WorldView: View {
                             moment: moment,
                             color: color(for: moment),
                             namespace: memoryNamespace,
-                            onClose: closeDetail
+                            onClose: closeDetail,
+                            onDelete: { deleteMemory(moment) }
                         )
                         .transition(reduceMotion ? .opacity : .soloraReveal)
                         .zIndex(10)
@@ -254,6 +258,14 @@ struct WorldView: View {
     private func closeDetail() {
         withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.spatial) {
             expandedID = nil
+        }
+    }
+
+    private func deleteMemory(_ moment: SoloraMoment) {
+        guard onDelete(moment) else { return }
+        withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.spatial) {
+            expandedID = nil
+            selectedID = displayedMoments.first(where: { $0.id != moment.id })?.id
         }
     }
 
@@ -990,6 +1002,7 @@ private struct MemoryDetail: View {
     let color: Color
     let namespace: Namespace.ID
     let onClose: () -> Void
+    let onDelete: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -1076,6 +1089,9 @@ private struct MemoryDetail: View {
                     .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
                 }
                 .buttonStyle(SoloraPressButtonStyle())
+
+                SwipeToDeleteMemory(action: onDelete)
+                    .padding(.top, 12)
             }
             .foregroundStyle(SoloraTheme.ink)
             .padding(20)
@@ -1098,5 +1114,72 @@ private struct MemoryDetail: View {
             Text(value)
                 .font(.subheadline.weight(.bold))
         }
+    }
+}
+
+private struct SwipeToDeleteMemory: View {
+    let action: () -> Void
+    @State private var dragOffset: CGFloat = 0
+    @State private var didConfirm = false
+
+    private let width: CGFloat = 310
+    private let confirmationDistance: CGFloat = 210
+
+    var body: some View {
+        GeometryReader { proxy in
+            let trackWidth = min(width, proxy.size.width)
+            let threshold = min(confirmationDistance, trackWidth - 56)
+
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(Color.red.opacity(0.12))
+
+                HStack {
+                    Spacer()
+                    Label("Delete memory", systemImage: "trash.fill")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.red.opacity(0.86))
+                        .padding(.trailing, 18)
+                }
+
+                Image(systemName: "trash.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Color.red, in: Circle())
+                    .offset(x: min(max(0, dragOffset), trackWidth - 44) + 6)
+            }
+            .frame(width: trackWidth, height: 56)
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+            .gesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { value in
+                        guard !didConfirm else { return }
+                        dragOffset = min(max(0, value.translation.width), trackWidth - 50)
+                    }
+                    .onEnded { _ in
+                        guard !didConfirm else { return }
+                        if dragOffset >= threshold {
+                            didConfirm = true
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            action()
+                        } else {
+                            withAnimation(.spring(response: 0.26, dampingFraction: 0.76)) {
+                                dragOffset = 0
+                            }
+                        }
+                    }
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Delete this memory")
+            .accessibilityHint("Swipe right to permanently delete")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                guard !didConfirm else { return }
+                didConfirm = true
+                action()
+            }
+        }
+        .frame(height: 56)
     }
 }

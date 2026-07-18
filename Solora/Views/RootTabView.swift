@@ -50,7 +50,8 @@ struct RootTabView: View {
                 moments: momentStore.moments,
                 vibe: vibe,
                 visualReference: visualReference,
-                focusMemoryID: focusedMemoryID
+                focusMemoryID: focusedMemoryID,
+                onDelete: deleteMemory
             )
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
             .tag(SoloraAppSurface.lore)
@@ -242,6 +243,20 @@ struct RootTabView: View {
     private func openMemory(_ memoryID: String) {
         selection = .lore
         focusedMemoryID = memoryID
+    }
+
+    @MainActor
+    private func deleteMemory(_ moment: SoloraMoment) -> Bool {
+        let didDelete = momentStore.delete(moment)
+        guard didDelete else { return false }
+        if focusedMemoryID == moment.id { focusedMemoryID = nil }
+        Task {
+            await SoloraMomentMediaDataCache.shared.remove(
+                paths: moment.photoPaths + (moment.stickerPath.map { [$0] } ?? [])
+            )
+        }
+        UIAccessibility.post(notification: .announcement, argument: "Memory deleted from your lore")
+        return true
     }
 }
 

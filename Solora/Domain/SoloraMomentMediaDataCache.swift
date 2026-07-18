@@ -54,6 +54,16 @@ actor SoloraMomentMediaDataCache {
         }
     }
 
+    func remove(paths: [String]) {
+        for path in paths where !path.isEmpty {
+            if let data = cachedData.removeValue(forKey: path) {
+                cachedByteCount -= data.count
+            }
+            cacheOrder.removeAll { $0 == path }
+            try? FileManager.default.removeItem(at: diskURL(for: path))
+        }
+    }
+
     private var cacheDirectory: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("SoloraMomentMedia", isDirectory: true)
