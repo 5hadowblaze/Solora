@@ -33,6 +33,8 @@
 	<string>1</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Talk with Solora using your voice.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Turn your spoken reflection into a private Solora memory.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

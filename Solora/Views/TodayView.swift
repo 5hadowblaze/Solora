@@ -1,13 +1,16 @@
 import PhotosUI
 import SwiftUI
 import UIKit
+import Speech
+@preconcurrency import FirebaseFunctions
 
 struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let moments: [SoloraMoment]
     let assistantStore: SoloraAssistantStore
-    let onSave: @MainActor (String, Data?, @escaping @MainActor (Double) -> Void) async -> Bool
+    let onSave: @MainActor (String, Data?, String?, @escaping @MainActor (Double) -> Void) async -> SoloraMoment?
+    let onOpenMemory: @MainActor (String) -> Void
 
     @State private var showsCapture = false
     @State private var showsFormation = false
@@ -40,8 +43,8 @@ struct TodayView: View {
             .sheet(isPresented: $showsCapture, onDismiss: {
                 assistantStore.endChildPresentation(.reflection)
             }) {
-                CaptureMomentSheet(assistantStore: assistantStore) { reflection, photoData, onProgress in
-                    await completeCapture(reflection, photoData: photoData, onProgress: onProgress)
+                CaptureMomentSheet(assistantStore: assistantStore) { reflection, photoData, voiceAnnotation, onProgress in
+                    await completeCapture(reflection, photoData: photoData, voiceAnnotation: voiceAnnotation, onProgress: onProgress)
                 }
             }
             .overlay {
@@ -195,17 +198,24 @@ struct TodayView: View {
     private func completeCapture(
         _ reflection: String,
         photoData: Data?,
+        voiceAnnotation: String? = nil,
         onProgress: @escaping @MainActor (Double) -> Void
     ) async -> Bool {
         captureTask?.cancel()
         toastTask?.cancel()
         savedReflection = false
-        guard await onSave(reflection, photoData, onProgress) else { return false }
-        showsCapture = false
 
         withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {
             showsFormation = true
         }
+
+        guard let savedMoment = await onSave(reflection, photoData, voiceAnnotation, onProgress) else {
+            withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {
+                showsFormation = false
+            }
+            return false
+        }
+        showsCapture = false
 
         captureTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 500 : 1_650))
@@ -213,6 +223,10 @@ struct TodayView: View {
             withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {
                 showsFormation = false
                 savedReflection = true
+            }
+
+            if voiceAnnotation != nil {
+                onOpenMemory(savedMoment.id)
             }
 
             toastTask = Task { @MainActor in
@@ -261,7 +275,7 @@ private struct RecentMemory: View {
 
 private struct CaptureMomentSheet: View {
     @ObservedObject var assistantStore: SoloraAssistantStore
-    let onSave: @MainActor (String, Data?, @escaping @MainActor (Double) -> Void) async -> Bool
+    let onSave: @MainActor (String, Data?, String?, @escaping @MainActor (Double) -> Void) async -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -272,6 +286,7 @@ private struct CaptureMomentSheet: View {
     @State private var isSaving = false
     @State private var uploadProgress = 0.0
     @State private var errorMessage: String?
+    @StateObject private var voiceAnnotation = VoiceAnnotationRecorder()
 
     private let prompts = [
         "I clarified the decision.",
@@ -338,6 +353,49 @@ private struct CaptureMomentSheet: View {
                         .background(.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 12))
                         .soloraHairline(radius: 12)
 
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: voiceAnnotation.isRecording ? "waveform.circle.fill" : "mic.circle.fill")
+                                .font(.system(size: 30, weight: .medium))
+                                .foregroundStyle(voiceAnnotation.isRecording ? SoloraTheme.coral : SoloraTheme.lavender)
+                                .symbolEffect(.pulse, isActive: voiceAnnotation.isRecording)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(voiceAnnotation.isRecording ? "Listening to your note" : "Annotate by voice")
+                                    .font(.subheadline.weight(.bold))
+                                Text("Speak naturally — Solora will shape it only when you finish.")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundStyle(SoloraTheme.ink.opacity(0.56))
+                            }
+                            Spacer(minLength: 8)
+                            Button(voiceAnnotation.isRecording ? "Done" : "Record") {
+                                voiceAnnotation.toggle()
+                            }
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(voiceAnnotation.isRecording ? SoloraTheme.cream : SoloraTheme.ink)
+                            .padding(.horizontal, 14)
+                            .frame(height: 36)
+                            .background(voiceAnnotation.isRecording ? SoloraTheme.coral : SoloraTheme.ink.opacity(0.08), in: Capsule())
+                            .disabled(isSaving)
+                        }
+
+                        if !voiceAnnotation.transcript.isEmpty {
+                            Text(voiceAnnotation.transcript)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(SoloraTheme.ink.opacity(0.72))
+                                .lineLimit(4)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
+                        if let message = voiceAnnotation.errorMessage {
+                            Text(message)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(SoloraTheme.coral)
+                        }
+                    }
+                    .padding(14)
+                    .background(SoloraTheme.lavender.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                    .soloraHairline(SoloraTheme.lavender.opacity(0.30), radius: 14)
+
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         HStack(spacing: 12) {
                             if let photoThumbnail {
@@ -378,11 +436,14 @@ private struct CaptureMomentSheet: View {
                     Spacer(minLength: 0)
 
                     Button {
-                        assistantStore.continueReflection(note: reflection)
+                        let cleanedAnnotation = voiceAnnotation.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let note = cleanedAnnotation.isEmpty ? reflection : cleanedAnnotation
+                        voiceAnnotation.stop()
+                        assistantStore.continueReflection(note: note)
                         errorMessage = nil
                         isSaving = true
                         Task { @MainActor in
-                            let didSave = await onSave(reflection, photoData) { progress in
+                            let didSave = await onSave(note, photoData, cleanedAnnotation.isEmpty ? nil : cleanedAnnotation) { progress in
                                 uploadProgress = progress
                             }
                             isSaving = false
@@ -390,7 +451,7 @@ private struct CaptureMomentSheet: View {
                         }
                     } label: {
                         HStack {
-                            Text("Keep it")
+                            Text(voiceAnnotation.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Keep it" : "Turn voice note into lore")
                             Spacer()
                             Image(systemName: "arrow.right")
                         }
@@ -401,7 +462,7 @@ private struct CaptureMomentSheet: View {
                         .background(SoloraTheme.ink, in: RoundedRectangle(cornerRadius: 13))
                     }
                     .buttonStyle(SoloraPressButtonStyle())
-                    .disabled(isSaving || reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(isSaving || (reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && voiceAnnotation.transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
                 }
                 .padding(20)
             }
@@ -447,6 +508,125 @@ private struct CaptureMomentSheet: View {
         guard let data = rendered.jpegData(compressionQuality: 0.82),
               data.count <= FirebaseMomentMediaRepository.maximumUploadBytes else { return nil }
         return data
+    }
+}
+
+@MainActor
+private final class VoiceAnnotationRecorder: NSObject, ObservableObject {
+    @Published private(set) var transcript = ""
+    @Published private(set) var isRecording = false
+    @Published private(set) var errorMessage: String?
+
+    private let audioEngine = AVAudioEngine()
+    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
+    private let recognizer = SFSpeechRecognizer()
+    private var recognitionTask: SFSpeechRecognitionTask?
+
+    func toggle() {
+        isRecording ? stop() : start()
+    }
+
+    func start() {
+        Task { @MainActor in
+            guard await Self.hasSpeechPermission() else {
+                errorMessage = "Allow Speech Recognition to annotate a memory by voice."
+                return
+            }
+            guard recognizer?.isAvailable == true else {
+                errorMessage = "Voice annotation is unavailable right now. Try again in a moment."
+                return
+            }
+
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.record, mode: .measurement, options: [.duckOthers])
+                try AVAudioSession.sharedInstance().setActive(true, options: .notifyOthersOnDeactivation)
+                let request = SFSpeechAudioBufferRecognitionRequest()
+                request.shouldReportPartialResults = true
+                recognitionRequest = request
+                recognitionTask?.cancel()
+                errorMessage = nil
+                transcript = ""
+
+                let input = audioEngine.inputNode
+                input.removeTap(onBus: 0)
+                let format = input.outputFormat(forBus: 0)
+                input.installTap(onBus: 0, bufferSize: 1_024, format: format) { [weak self] buffer, _ in
+                    self?.recognitionRequest?.append(buffer)
+                }
+
+                recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        if let result {
+                            transcript = result.bestTranscription.formattedString
+                            if result.isFinal { stop() }
+                        }
+                        if error != nil, !transcript.isEmpty { stop() }
+                    }
+                }
+                audioEngine.prepare()
+                try audioEngine.start()
+                isRecording = true
+            } catch {
+                stop()
+                errorMessage = "Solora could not start voice annotation. Please try again."
+            }
+        }
+    }
+
+    func stop() {
+        guard isRecording || audioEngine.isRunning else { return }
+        audioEngine.stop()
+        audioEngine.inputNode.removeTap(onBus: 0)
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        isRecording = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    private static func hasSpeechPermission() async -> Bool {
+        switch SFSpeechRecognizer.authorizationStatus() {
+        case .authorized: return true
+        case .denied, .restricted: return false
+        case .notDetermined:
+            return await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { status in
+                    continuation.resume(returning: status == .authorized)
+                }
+            }
+        @unknown default: return false
+        }
+    }
+}
+
+struct VoiceMemoryDraft: Decodable, Equatable {
+    let title: String
+    let summary: String
+    let category: String
+}
+
+struct VoiceMemoryAnnotationService {
+    func makeDraft(from transcript: String) async throws -> VoiceMemoryDraft {
+        let result = try await Functions.functions()
+            .httpsCallable("annotateVoiceMemory")
+            .call(["transcript": transcript])
+        guard let payload = result.data as? [String: Any],
+              let title = payload["title"] as? String,
+              let summary = payload["summary"] as? String,
+              let category = payload["category"] as? String else {
+            throw VoiceMemoryAnnotationError.invalidResponse
+        }
+        return VoiceMemoryDraft(title: title, summary: summary, category: category)
+    }
+}
+
+enum VoiceMemoryAnnotationError: LocalizedError {
+    case invalidResponse
+
+    var errorDescription: String? {
+        "Solora could not shape that voice note into a memory. Please try again."
     }
 }
 

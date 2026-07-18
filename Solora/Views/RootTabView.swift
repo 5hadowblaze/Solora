@@ -39,7 +39,8 @@ struct RootTabView: View {
             TodayView(
                 moments: momentStore.moments,
                 assistantStore: assistantStore,
-                onSave: saveReflection
+                onSave: saveReflection,
+                onOpenMemory: openMemory
             )
                 .tabItem { Label("Now", systemImage: "circle.fill") }
                 .tag(SoloraAppSurface.now)
@@ -163,11 +164,25 @@ struct RootTabView: View {
     private func saveReflection(
         _ reflection: String,
         photoData: Data?,
+        voiceAnnotation: String?,
         onProgress: @escaping @MainActor (Double) -> Void
-    ) async -> Bool {
+    ) async -> SoloraMoment? {
         let identifier = UUID().uuidString
         var photoPaths: [String] = []
         var stickerPath: String?
+
+        let voiceDraft: VoiceMemoryDraft?
+        if let voiceAnnotation {
+            do {
+                voiceDraft = try await VoiceMemoryAnnotationService().makeDraft(from: voiceAnnotation)
+            } catch {
+                momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
+                    ?? "Solora could not shape that voice note into a memory. Please try again."
+                return nil
+            }
+        } else {
+            voiceDraft = nil
+        }
 
         if let photoData {
             do {
@@ -189,7 +204,7 @@ struct RootTabView: View {
             } catch {
                 momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
                     ?? "The photo could not be uploaded. Please try again."
-                return false
+                return nil
             }
         }
 
@@ -200,11 +215,11 @@ struct RootTabView: View {
         )
         let moment = SoloraMoment(
             id: fixture.id,
-            title: fixture.title,
-            summary: fixture.summary,
+            title: voiceDraft?.title ?? fixture.title,
+            summary: voiceDraft?.summary ?? fixture.summary,
             date: fixture.date,
             world: fixture.world,
-            category: fixture.category,
+            category: voiceDraft.flatMap { $0.category.isEmpty ? nil : $0.category } ?? fixture.category,
             stickerPath: stickerPath ?? fixture.stickerPath,
             photoPaths: photoPaths
         )
@@ -212,9 +227,15 @@ struct RootTabView: View {
         withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
             didSave = momentStore.save(moment)
         }
-        guard didSave else { return false }
+        guard didSave else { return nil }
         UIAccessibility.post(notification: .announcement, argument: "Reflection saved to your archive")
-        return true
+        return moment
+    }
+
+    @MainActor
+    private func openMemory(_ memoryID: String) {
+        selection = .lore
+        focusedMemoryID = memoryID
     }
 }
 
