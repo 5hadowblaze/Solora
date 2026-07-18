@@ -14,3 +14,5 @@ firebase-debug.log
 !.env.example
 GoogleService-Info.plist.bak
 .worktrees/
+.superpowers/
+legacy-career-fridge/
