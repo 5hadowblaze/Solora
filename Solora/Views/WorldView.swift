@@ -17,7 +17,7 @@ struct WorldView: View {
                     ZStack {
                         switch selection {
                         case .memoryShelves:
-                            MemoryShelvesWorld(arrangementVersion: arrangementVersion)
+                            MemoryShelvesWorld(arrangementVersion: $arrangementVersion)
                                 .transition(worldTransition)
                         case .careerFridge:
                             CareerFridgeWorld()
@@ -118,7 +118,7 @@ private enum WorldRecommendation: String, CaseIterable, Identifiable {
 
 private struct MemoryShelvesWorld: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let arrangementVersion: Int
+    @Binding var arrangementVersion: Int
 
     private let memories = [
         ShelfMemory(title: "Found clarity", skill: "Strategy", color: SoloraTheme.gold, size: 86),
