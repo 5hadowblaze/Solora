@@ -12,6 +12,11 @@ service firebase.storage {
       allow read, delete: if owns(userId);
       allow create, update: if owns(userId) && validImageUpload();
     }
+
+    match /users/{userId}/wins/{winId}/stickers/{fileName} {
+      allow read, delete: if owns(userId);
+      allow create, update: if owns(userId) && validImageUpload();
+    }
     match /{legacyKind}/{legacyUserId}/{fileName} {
       allow read: if legacyKind in ['win-photos', 'stickers']
         && request.auth != null

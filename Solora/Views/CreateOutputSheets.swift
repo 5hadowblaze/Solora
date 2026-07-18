@@ -99,7 +99,8 @@ struct MemorySelectionSheet: View {
                     size: 42,
                     color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
                     showsHalo: isSelected,
-                    mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                    mediaPath: moment.bubblePhotoPath,
+                    stickerPath: moment.bubbleStickerPath
                 )
                 .accessibilityHidden(true)
 

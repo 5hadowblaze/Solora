@@ -10,6 +10,9 @@ struct SoloraMoment: Codable, Equatable, Identifiable, Sendable {
     let stickerPath: String?
     let photoPaths: [String]
 
+    var bubblePhotoPath: String? { photoPaths.first }
+    var bubbleStickerPath: String? { stickerPath }
+
     init(
         id: String,
         title: String,

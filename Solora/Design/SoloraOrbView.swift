@@ -9,6 +9,7 @@ struct SoloraOrbView: View {
     var isAlive = false
     var showsHalo = false
     var mediaPath: String?
+    var stickerPath: String?
 
     var body: some View {
         Group {
@@ -125,6 +126,14 @@ struct SoloraOrbView: View {
                     }
             }
 
+            if let stickerPath, !stickerPath.isEmpty {
+                SoloraMomentMediaImage(path: stickerPath, scalesToFill: false)
+                    .frame(width: size * 0.78, height: size * 0.78)
+                    .rotationEffect(.degrees(-4 + sin(phase * 0.33) * 1.5))
+                    .shadow(color: SoloraTheme.plum.opacity(0.22), radius: size * 0.05, y: size * 0.04)
+                    .accessibilityLabel("Personal memory sticker")
+            }
+
             Circle()
                 .fill(
                     LinearGradient(
@@ -177,12 +186,17 @@ struct SoloraOrbView: View {
 
 private struct SoloraMomentMediaImage: View {
     let path: String
+    var scalesToFill = true
     @State private var resolvedImage: Image?
 
     var body: some View {
         Group {
             if let resolvedImage {
-                resolvedImage.resizable().scaledToFill().transition(.opacity)
+                if scalesToFill {
+                    resolvedImage.resizable().scaledToFill().transition(.opacity)
+                } else {
+                    resolvedImage.resizable().scaledToFit().transition(.opacity)
+                }
             } else {
                 Color.clear
             }

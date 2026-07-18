@@ -236,7 +236,8 @@ private struct RecentMemory: View {
             SoloraOrbView(
                 size: 68,
                 color: color,
-                mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                mediaPath: moment.bubblePhotoPath,
+                stickerPath: moment.bubbleStickerPath
             )
                 .accessibilityHidden(true)
 
@@ -563,7 +564,8 @@ struct MomentRow: View {
             SoloraOrbView(
                 size: 44,
                 color: color,
-                mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                mediaPath: moment.bubblePhotoPath,
+                stickerPath: moment.bubbleStickerPath
             )
                 .accessibilityHidden(true)
 

@@ -146,7 +146,8 @@ struct WorldView: View {
                         SoloraOrbView(
                             size: 42,
                             color: color(for: moment),
-                            mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                            mediaPath: moment.bubblePhotoPath,
+                            stickerPath: moment.bubbleStickerPath
                         )
                             .accessibilityHidden(true)
 
@@ -345,7 +346,8 @@ private struct LoreCanvas: View {
                     color: color,
                     isAlive: isSelected && !isExpanded,
                     showsHalo: isSelected,
-                    mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                    mediaPath: moment.bubblePhotoPath,
+                    stickerPath: moment.bubbleStickerPath
                 )
                 .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: !isExpanded)
                 .opacity(isExpanded ? 0 : 1)
@@ -507,7 +509,8 @@ private struct MemoryDetail: View {
                         color: color,
                         isAlive: true,
                         showsHalo: true,
-                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                        mediaPath: moment.bubblePhotoPath,
+                        stickerPath: moment.bubbleStickerPath
                     )
                         .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: false)
                     Spacer()

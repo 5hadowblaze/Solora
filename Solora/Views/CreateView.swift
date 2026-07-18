@@ -566,7 +566,8 @@ private struct MemoryMixer: View {
                                         size: selected ? 58 : 48,
                                         color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
                                         showsHalo: selected,
-                                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                                        mediaPath: moment.bubblePhotoPath,
+                                        stickerPath: moment.bubbleStickerPath
                                     )
                                     .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
 
@@ -668,7 +669,8 @@ private struct GenerationTheatre: View {
                         size: 62,
                         color: SoloraTheme.orbColors[index % SoloraTheme.orbColors.count],
                         showsHalo: phase == .orbit,
-                        mediaPath: moment.photoPaths.first ?? moment.stickerPath
+                        mediaPath: moment.bubblePhotoPath,
+                        stickerPath: moment.bubbleStickerPath
                     )
                     .matchedGeometryEffect(id: "mixer-\(moment.id)", in: namespace)
                     .offset(orbOffset(index: index, phase: phase))

@@ -156,6 +156,7 @@ struct RootTabView: View {
     ) async -> Bool {
         let identifier = UUID().uuidString
         var photoPaths: [String] = []
+        var stickerPath: String?
 
         if let photoData {
             do {
@@ -166,6 +167,14 @@ struct RootTabView: View {
                     onProgress: onProgress
                 )
                 photoPaths = [path]
+
+                if let stickerData = SoloraStickerComposer.stickerPNG(from: photoData) {
+                    stickerPath = try? await FirebaseMomentMediaRepository.uploadSticker(
+                        stickerData,
+                        userID: authenticatedUser.id,
+                        momentID: identifier
+                    )
+                }
             } catch {
                 momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
                     ?? "The photo could not be uploaded. Please try again."
@@ -185,7 +194,7 @@ struct RootTabView: View {
             date: fixture.date,
             world: fixture.world,
             category: fixture.category,
-            stickerPath: fixture.stickerPath,
+            stickerPath: stickerPath ?? fixture.stickerPath,
             photoPaths: photoPaths
         )
         var didSave = false
