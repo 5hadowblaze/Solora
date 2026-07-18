@@ -36,6 +36,7 @@
 		83B7EB1E06BE24594B2F061D /* OnboardingLearningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C2831E2B893C150A7E97FA /* OnboardingLearningView.swift */; };
 		890E80C5EB817F7BDBAD70CF /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE08EAD9F547FCEC5D62CDA7 /* AuthenticationView.swift */; };
 		8A8F15A9516D9D6DA7B76D6B /* SoloraAssistantStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A104A207C456C7D67EB1211A /* SoloraAssistantStore.swift */; };
+		8BCF4AF11D0A4B79A8D3E201 /* SoloraMomentMediaDataCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BCF4AF01D0A4B79A8D3E201 /* SoloraMomentMediaDataCache.swift */; };
 		A2E752FEDCEFBBDE7538266C /* CalendarEventCandidate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6503B36B9FF64D06EF61CD1 /* CalendarEventCandidate.swift */; };
 		A808D9B28D39F61A613F44E7 /* SoloraMoment.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */; };
 		AD5B436B5BF645C31918D690 /* SoloraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B9A0CB26EAE77BC906C7B5D /* SoloraApp.swift */; };
@@ -97,6 +98,7 @@
 		7C57C4994D9BCA8D5C954C30 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7C8194DB400E99BF042A3C12 /* OnboardingComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingComponents.swift; sourceTree = "<group>"; };
 		80E6724014CF0DF45A4BFCCC /* SoloraOnboarding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraOnboarding.swift; sourceTree = "<group>"; };
+		8BCF4AF01D0A4B79A8D3E201 /* SoloraMomentMediaDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMomentMediaDataCache.swift; sourceTree = "<group>"; };
 		826EB1B58456307F246D3C59 /* SoloraMotion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMotion.swift; sourceTree = "<group>"; };
 		9AAE5C08D3F8FCC03B2D54F4 /* CalendarIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarIntegrationTests.swift; sourceTree = "<group>"; };
 		A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraOrbView.swift; sourceTree = "<group>"; };
@@ -289,6 +291,7 @@
 				C6A78E6686461624839D672F /* FirebaseMomentMediaRepository.swift */,
 				27BCA1DA933ACC9AFC131DF2 /* FirebaseMomentRepository.swift */,
 				10ED9CD96663627FE933DE57 /* MasterCV.swift */,
+				8BCF4AF01D0A4B79A8D3E201 /* SoloraMomentMediaDataCache.swift */,
 				BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */,
 				AEBDABE84210833189CE7553 /* WorldKind.swift */,
 				CC7375825FA532AC8CF6D2E4 /* WorldManifest.swift */,
@@ -434,6 +437,7 @@
 				500741558FE3C42F8DA1E047 /* SoloraAssistantShell.swift in Sources */,
 				8A8F15A9516D9D6DA7B76D6B /* SoloraAssistantStore.swift in Sources */,
 				BF40F49440B7056068756F32 /* SoloraAssistantTools.swift in Sources */,
+				8BCF4AF11D0A4B79A8D3E201 /* SoloraMomentMediaDataCache.swift in Sources */,
 				A808D9B28D39F61A613F44E7 /* SoloraMoment.swift in Sources */,
 				EEDB14F440A42482100A55D0 /* SoloraMotion.swift in Sources */,
 				10AF6111817888C6DF5FC156 /* SoloraOnboarding.swift in Sources */,

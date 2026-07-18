@@ -209,15 +209,3 @@ private struct SoloraMomentMediaImage: View {
         }
     }
 }
-
-private actor SoloraMomentMediaDataCache {
-    static let shared = SoloraMomentMediaDataCache()
-    private var cachedData: [String: Data] = [:]
-
-    func data(for path: String) async throws -> Data {
-        if let cached = cachedData[path] { return cached }
-        let data = try await FirebaseMomentMediaRepository.imageData(for: path)
-        cachedData[path] = data
-        return data
-    }
-}

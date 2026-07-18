@@ -85,6 +85,12 @@ struct RootTabView: View {
         }
         .onChange(of: momentStore.moments, initial: true) { _, moments in
             assistantStore.replaceMemories(moments)
+            let mediaPaths = moments.flatMap { moment in
+                moment.photoPaths + (moment.stickerPath.map { [$0] } ?? [])
+            }
+            Task(priority: .utility) {
+                await SoloraMomentMediaDataCache.shared.preload(paths: mediaPaths)
+            }
         }
         .onChange(of: selection, initial: true) { _, surface in
             assistantStore.setActiveSurface(surface)
