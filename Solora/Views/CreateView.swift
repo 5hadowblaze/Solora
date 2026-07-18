@@ -13,9 +13,8 @@ struct CreateView: View {
     @State private var generationTask: Task<Void, Never>?
 
     init(moments: [SoloraMoment] = DemoFixtures.moments) {
-        let source = moments.isEmpty ? DemoFixtures.moments : moments
-        self.moments = source
-        _selectedIDs = State(initialValue: Set(source.prefix(3).map(\.id)))
+        self.moments = moments
+        _selectedIDs = State(initialValue: Set(moments.prefix(3).map(\.id)))
     }
 
     private var selectedMoments: [SoloraMoment] {

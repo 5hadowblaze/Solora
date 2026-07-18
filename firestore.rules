@@ -1,8 +1,105 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function owns(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function validOptionalString(data, field, maxSize) {
+      return !(field in data) || data[field] == null
+        || (data[field] is string && data[field].size() <= maxSize);
+    }
+
+    function validList(data, field, maxItems) {
+      return !(field in data) || (
+        data[field] is list
+        && data[field].size() <= maxItems
+      );
+    }
+
+    function validSoloraMoment(momentId, data) {
+      return data.keys().hasOnly([
+          'id', 'title', 'caption', 'occurredAt', 'createdAt', 'updatedAt',
+          'world', 'schemaVersion', 'category', 'stickerPath', 'photoPaths'
+        ])
+        && data.keys().hasAll([
+          'id', 'title', 'caption', 'occurredAt', 'createdAt', 'updatedAt',
+          'world', 'schemaVersion', 'photoPaths'
+        ])
+        && data.id == momentId
+        && data.id is string
+        && data.id.size() > 0
+        && data.id.size() <= 128
+        && data.title is string
+        && data.title.size() > 0
+        && data.title.size() <= 120
+        && data.caption is string
+        && data.caption.size() > 0
+        && data.caption.size() <= 2000
+        && data.occurredAt is timestamp
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.world == 'memoryShelves'
+        && data.schemaVersion == 1
+        && validOptionalString(data, 'category', 40)
+        && validOptionalString(data, 'stickerPath', 512)
+        && validList(data, 'photoPaths', 10);
+    }
+
+    match /users/{userId} {
+      allow get: if owns(userId);
+      allow create, update: if owns(userId);
+      allow list, delete: if false;
+
+      match /wins/{momentId} {
+        allow get, list: if owns(userId);
+        allow create: if owns(userId) && validSoloraMoment(momentId, request.resource.data);
+        allow delete: if owns(userId);
+        allow update: if false;
+      }
+
+      match /cvDocuments/{documentId} {
+        allow get, list: if owns(userId);
+        allow create, update: if owns(userId)
+          && request.resource.data.keys().hasAll([
+            'id', 'schemaVersion', 'version', 'status', 'documentKind',
+            'title', 'contentMarkdown', 'canonicalFormat', 'formatProfile'
+          ])
+          && request.resource.data.id == documentId
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.version is int
+          && request.resource.data.version > 0
+          && request.resource.data.status in ['active', 'archived']
+          && request.resource.data.documentKind == 'master_extended_cv'
+          && request.resource.data.title is string
+          && request.resource.data.title.size() <= 200
+          && request.resource.data.contentMarkdown is string
+          && request.resource.data.contentMarkdown.size() <= 500000
+          && request.resource.data.canonicalFormat == 'markdown'
+          && request.resource.data.formatProfile is map;
+        allow delete: if owns(userId);
+      }
+
+      match /cvEntries/{entryId} {
+        allow get, list: if owns(userId);
+        allow create, update: if owns(userId)
+          && request.resource.data.id == entryId
+          && request.resource.data.type in [
+            'experience', 'education', 'project', 'award', 'volunteering',
+            'certification', 'skill', 'language', 'interest'
+          ]
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 300
+          && request.resource.data.masterDocumentID is string
+          && request.resource.data.masterVersion is int;
+        allow delete: if owns(userId);
+      }
+
+      match /cvFiles/{fileId} {
+        allow get, list: if owns(userId);
+        allow write: if false;
+      }
     }
   }
 }

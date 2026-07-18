@@ -4,7 +4,7 @@ struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let moments: [SoloraMoment]
-    let onSave: (String) -> Void
+    let onSave: (String) -> Bool
 
     @State private var showsCapture = false
     @State private var showsFormation = false
@@ -188,7 +188,7 @@ struct TodayView: View {
         captureTask?.cancel()
         toastTask?.cancel()
         savedReflection = false
-        onSave(reflection)
+        guard onSave(reflection) else { return }
         showsCapture = false
 
         withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {

@@ -49,4 +49,72 @@ final class SoloraMomentTests: XCTestCase {
         XCTAssertEqual(user.firstName, "Amir")
         XCTAssertEqual(user.initials, "AD")
     }
+
+    func testCareerFridgeDocumentMapsToSoloraMoment() throws {
+        let date = Date(timeIntervalSince1970: 1_750_000_000)
+        let moment = try XCTUnwrap(FirebaseMomentRepository.moment(
+            documentID: "win-1",
+            data: [
+                "title": "Won Hackathon Competition!",
+                "caption": "Hackathon win, great success!",
+                "category": "hackathon",
+                "occurredAt": date,
+                "stickerPath": "stickers/user/win-1.png",
+                "photoPaths": ["win-photos/user/win-1-0.jpg"]
+            ]
+        ))
+
+        XCTAssertEqual(moment.id, "win-1")
+        XCTAssertEqual(moment.title, "Won Hackathon Competition!")
+        XCTAssertEqual(moment.summary, "Hackathon win, great success!")
+        XCTAssertEqual(moment.date, date)
+        XCTAssertEqual(moment.category, "hackathon")
+        XCTAssertEqual(moment.stickerPath, "stickers/user/win-1.png")
+        XCTAssertEqual(moment.photoPaths, ["win-photos/user/win-1-0.jpg"])
+    }
+
+    func testMomentDecodesOlderPayloadWithoutMediaFields() throws {
+        let data = Data(#"{"id":"legacy","title":"A win","summary":"Kept moving.","date":0,"world":"memoryShelves"}"#.utf8)
+        let moment = try JSONDecoder().decode(SoloraMoment.self, from: data)
+
+        XCTAssertNil(moment.category)
+        XCTAssertNil(moment.stickerPath)
+        XCTAssertEqual(moment.photoPaths, [])
+    }
+
+    func testMomentValidationRejectsOversizedReflection() {
+        let moment = SoloraMoment(
+            id: "moment-1",
+            title: "A useful workshop",
+            summary: String(repeating: "a", count: 2_001),
+            date: .now,
+            world: .memoryShelves
+        )
+
+        XCTAssertThrowsError(try FirebaseMomentRepository.validate(moment))
+    }
+
+    func testMasterCVDocumentMapsFormattingProfile() throws {
+        let master = try XCTUnwrap(FirebaseCVRepository.master(
+            documentID: "master-extended-cv",
+            data: [
+                "title": "Dzakwan Dzulzalani Extended CV",
+                "version": 1,
+                "contentMarkdown": "**EXPERIENCE**",
+                "structuredEntryCount": 68,
+                "formatProfile": [
+                    "languageVariant": "British English",
+                    "voice": "Achievement-focused",
+                    "dateStyle": "Month YYYY – Month YYYY",
+                    "sourceTypeface": "Garamond",
+                    "sourcePageCount": 10
+                ]
+            ]
+        ))
+
+        XCTAssertEqual(master.structuredEntryCount, 68)
+        XCTAssertEqual(master.formatProfile.languageVariant, "British English")
+        XCTAssertEqual(master.formatProfile.sourceTypeface, "Garamond")
+        XCTAssertEqual(master.formatProfile.sourcePageCount, 10)
+    }
 }

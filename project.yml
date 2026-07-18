@@ -20,6 +20,10 @@ targets:
     platform: iOS
     sources:
       - path: Solora
+    entitlements:
+      path: Solora/Solora.entitlements
+      properties:
+        com.apple.developer.devicecheck.appattest-environment: production
     info:
       path: Solora/Resources/Info.plist
       properties:
@@ -40,6 +44,8 @@ targets:
     dependencies:
       - package: Firebase
         product: FirebaseCore
+      - package: Firebase
+        product: FirebaseAppCheck
       - package: Firebase
         product: FirebaseAuth
       - package: Firebase

@@ -28,11 +28,11 @@ struct WorldView: View {
         self.vibe = vibe
         self.visualReference = visualReference
         _skin = State(initialValue: LoreSkin.initial(for: visualReference))
-        _selectedID = State(initialValue: moments.first?.id ?? DemoFixtures.moments.first?.id)
+        _selectedID = State(initialValue: moments.first?.id)
     }
 
     private var displayedMoments: [SoloraMoment] {
-        Array((moments.isEmpty ? DemoFixtures.moments : moments).prefix(6))
+        Array(moments.prefix(6))
     }
 
     private var selectedMoment: SoloraMoment? {

@@ -6,6 +6,7 @@ struct YouView: View {
     let authenticatedUser: AuthenticatedUser
     let signOut: () -> Void
 
+    @StateObject private var cvStore: CVStore
     @State private var calendarOn = true
     @State private var cvOn = true
 
@@ -19,6 +20,7 @@ struct YouView: View {
         self.visualReference = visualReference
         self.authenticatedUser = authenticatedUser
         self.signOut = signOut
+        _cvStore = StateObject(wrappedValue: CVStore(userID: authenticatedUser.id))
     }
 
     var body: some View {
@@ -55,6 +57,9 @@ struct YouView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .task(id: authenticatedUser.id) {
+                await cvStore.load()
+            }
         }
     }
 
@@ -106,13 +111,45 @@ struct YouView: View {
                 .foregroundStyle(SoloraTheme.ink.opacity(0.52))
 
             VStack(spacing: 0) {
-                sourceRow("Master CV", symbol: "doc.text.fill", tint: SoloraTheme.coral, isOn: $cvOn)
+                masterCVRow
                 Divider().padding(.leading, 56)
                 sourceRow("Calendar", symbol: "calendar", tint: SoloraTheme.gold, isOn: $calendarOn)
             }
             .background(.white.opacity(0.50), in: RoundedRectangle(cornerRadius: 14))
             .soloraHairline(radius: 14)
         }
+    }
+
+    private var masterCVRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.text.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(SoloraTheme.coral)
+                .frame(width: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Master CV")
+                    .font(.subheadline.weight(.semibold))
+                Text(masterCVStatus)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(SoloraTheme.ink.opacity(0.46))
+            }
+            Spacer()
+            Toggle("", isOn: $cvOn)
+                .labelsHidden()
+                .tint(SoloraTheme.moss)
+        }
+        .foregroundStyle(SoloraTheme.ink)
+        .padding(.horizontal, 14)
+        .frame(height: 64)
+    }
+
+    private var masterCVStatus: String {
+        if let master = cvStore.master {
+            return "\(master.structuredEntryCount) entries · version \(master.version)"
+        }
+        if cvStore.isLoading { return "Loading your extended CV…" }
+        if cvStore.errorMessage != nil { return "Saved · sync unavailable" }
+        return "Extended CV source"
     }
 
     private var preferenceSection: some View {

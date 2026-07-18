@@ -9,7 +9,7 @@ struct RootTabView: View {
     let visualReference: String
     let authenticatedUser: AuthenticatedUser
     let signOut: () -> Void
-    @State private var moments: [SoloraMoment]
+    @StateObject private var momentStore: MomentStore
     @State private var selection: RootTab
 
     init(
@@ -24,26 +24,29 @@ struct RootTabView: View {
         self.visualReference = visualReference
         self.authenticatedUser = authenticatedUser
         self.signOut = signOut
-        _moments = State(initialValue: container.moments)
+        _momentStore = StateObject(wrappedValue: MomentStore(
+            userID: authenticatedUser.id,
+            demoMoments: container.moments
+        ))
         _selection = State(initialValue: RootTab.launchSelection)
     }
 
     var body: some View {
         TabView(selection: $selection) {
-            TodayView(moments: moments, onSave: saveReflection)
+            TodayView(moments: momentStore.moments, onSave: saveReflection)
                 .tabItem { Label("Now", systemImage: "circle.fill") }
                 .tag(RootTab.now)
 
             WorldView(
                 manifest: container.worldManifest,
-                moments: moments,
+                moments: momentStore.moments,
                 vibe: vibe,
                 visualReference: visualReference
             )
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
             .tag(RootTab.lore)
 
-            CreateView(moments: moments)
+            CreateView(moments: momentStore.moments)
                 .tabItem { Label("Share", systemImage: "wand.and.rays") }
                 .tag(RootTab.share)
 
@@ -57,16 +60,32 @@ struct RootTabView: View {
                 .tag(RootTab.you)
         }
         .tint(SoloraTheme.coral)
+        .task(id: authenticatedUser.id) {
+            momentStore.start()
+        }
+        .alert("Couldn't sync your lore", isPresented: Binding(
+            get: { momentStore.errorMessage != nil },
+            set: { if !$0 { momentStore.clearError() } }
+        )) {
+            Button("OK", role: .cancel) { momentStore.clearError() }
+        } message: {
+            Text(momentStore.errorMessage ?? "Please try again.")
+        }
     }
 
-    private func saveReflection(_ reflection: String) {
+    private func saveReflection(_ reflection: String) -> Bool {
+        let moment = DemoFixtures.postEventReflection(
+            id: UUID().uuidString,
+            date: .now,
+            reflection: reflection
+        )
+        var didSave = false
         withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
-            moments.insert(
-                DemoFixtures.postEventReflection(id: UUID().uuidString, date: .now, reflection: reflection),
-                at: 0
-            )
+            didSave = momentStore.save(moment)
         }
+        guard didSave else { return false }
         UIAccessibility.post(notification: .announcement, argument: "Reflection saved to your archive")
+        return true
     }
 }
 

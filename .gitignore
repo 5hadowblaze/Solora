@@ -6,8 +6,10 @@ xcuserdata/
 .swiftpm/
 .build/
 functions/node_modules/
+firebase-tests/node_modules/
 functions/lib/
 firebase-debug.log
+firestore-debug.log
 .firebase/
 .env
 .env.*
