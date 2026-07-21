@@ -4,7 +4,7 @@ struct SoloraOnboarding: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var step: SoloraOnboardingStep = .welcome
-    @State private var includedSources: Set<SoloraOnboardingSource> = [.cv, .calendar]
+    @State private var includedSources: Set<SoloraOnboardingSource> = [.cv]
     @State private var selectedVibe = "Warm & reflective"
     @State private var selectedVisualReference = "Core room"
     @State private var showsChatGPTImport = false

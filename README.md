@@ -8,11 +8,11 @@ Solora is a native iOS career-memory companion. It turns the moments that shape 
 
 - **Capture memories in the moment.** Write a reflection, attach a photo, or annotate by voice. Solora turns the completed voice note into a structured, user-reviewed memory draft.
 - **Make memories tangible.** Photos and foreground-cutout stickers become luminous glass bubbles, cached on device for responsive navigation.
-- **Explore your lore.** Browse a living world in three visual modes: the Core Room, a Constellation map and a tactile Career Fridge. Open any bubble to read its story or remove it through a deliberate confirmation flow.
-- **Keep a live pulse.** The Now screen surfaces a live event prompt and a device-time clock, making it easy to reflect while a moment is still fresh.
+- **Explore your lore.** Browse a tactile private world of memory bubbles, open each reflection, and remove it through a deliberate confirmation flow.
+- **Keep a live pulse.** The Now screen surfaces a gentle reflection prompt and a device-time clock, making it easy to capture what matters while it is fresh.
 - **Bring in existing context.** A user-led ChatGPT memory-import flow provides a prompt, lets the user choose what to bring back, and keeps the final save under their control.
-- **Connect Calendar thoughtfully.** Google Calendar uses read-only access to surface completed events for individual review; nothing becomes a memory until the user adds their own reflection.
-- **Create useful outputs.** Select groups of memories to generate share-ready stories, social posts, a CV view, talking points and an in-app deck preview.
+- **Keep one master CV.** Your saved CV is a private, living reference beside recent career evidence.
+- **Share the moments.** Create a concise post from recent work or share a personal CV summary built from memory bubbles.
 - **Talk to Solora.** The persistent companion supports voice conversation, navigates to app surfaces, and can open a requested memory through explicit local tools.
 
 ## Experience map
@@ -20,9 +20,9 @@ Solora is a native iOS career-memory companion. It turns the moments that shape 
 | Surface | Purpose |
 | --- | --- |
 | **Now** | Capture reflections, add photos or voice annotations, and revisit recent memories. |
-| **Lore** | Explore memory bubbles spatially, change visual worlds and open full memory details. |
-| **Share** | Combine selected memories into story, post, CV, talking-point and deck formats. |
-| **You** | Manage personal preferences, CV context and connected Google Calendar access. |
+| **Lore** | Explore memory bubbles spatially and open full memory details. |
+| **Share** | Read and share a private Master CV alongside recent career evidence. |
+| **You** | Manage personal preferences, privacy and account access. |
 
 ## Visual system
 
@@ -45,7 +45,6 @@ SwiftUI iOS app
 ├── Authentication      Google Sign-In and Firebase Authentication
 ├── Domain              memory, media, CV and persistence repositories
 ├── Assistant           Solora companion, Realtime session and local app tools
-├── Calendar            OAuth consent, Calendar API client and review flow
 ├── Onboarding          personalisation and user-led memory import
 ├── Views / Design      app surfaces, glass bubbles, worlds and motion
 └── Firebase
@@ -61,7 +60,6 @@ Memory photos and stickers are stored in `Library/Caches/SoloraMomentMedia` afte
 
 ### Privacy and control
 
-- Every Calendar event is reviewed before it is saved as a memory.
 - The ChatGPT import flow asks the user to paste results back into the app and select what belongs in their lore.
 - Realtime credentials are minted server-side and are short lived; the app never embeds an OpenAI API key.
 - Voice annotations are sent only after the user finishes recording and chooses to create a memory.
@@ -74,7 +72,7 @@ Memory photos and stickers are stored in `Library/Caches/SoloraMomentMedia` afte
 | iOS | Swift 6, SwiftUI, UIKit, PhotosUI, Speech and AVFoundation |
 | Backend | Firebase Functions on Node.js 22 and TypeScript |
 | Data | Firebase Authentication, Cloud Firestore and Firebase Storage |
-| Identity and calendar | Google Sign-In and Google Calendar API |
+| Identity | Google Sign-In |
 | Voice companion | OpenAI Realtime over WebRTC, brokered through Firebase Functions |
 | AI memory shaping | OpenAI Responses API, called only from Firebase Functions |
 | Tooling | Xcode, Swift Package Manager, Firebase CLI and Node.js |
@@ -92,9 +90,8 @@ Memory photos and stickers are stored in `Library/Caches/SoloraMomentMedia` afte
 
 1. Place the Firebase iOS configuration file at `Solora/Resources/GoogleService-Info.plist`.
 2. Ensure `GOOGLE_REVERSED_CLIENT_ID` in the Xcode build settings matches the reversed client ID in that configuration file.
-3. In Google Cloud, enable the Google Calendar API and configure OAuth Data Access for `https://www.googleapis.com/auth/calendar.events.readonly`.
-4. Open [Solora.xcodeproj](Solora.xcodeproj) in Xcode and allow Swift Package Manager to resolve packages.
-5. Choose the `Solora` scheme and run on a simulator or a connected iPhone.
+3. Open [Solora.xcodeproj](Solora.xcodeproj) in Xcode and allow Swift Package Manager to resolve packages.
+4. Choose the `Solora` scheme and run on a simulator or a connected iPhone.
 
 ### Configure Firebase Functions
 
@@ -132,7 +129,6 @@ npm --prefix firebase-tests test
 | `Solora/App` | app entry point and composition root |
 | `Solora/Assistant` | voice companion, Realtime transport and local navigation tools |
 | `Solora/Authentication` | Google and Firebase sign-in state |
-| `Solora/Calendar` | OAuth, Calendar client, candidates and review flow |
 | `Solora/Design` | theme, motion, orb and glass presentation components |
 | `Solora/Domain` | models plus Firebase, media and CV repositories |
 | `Solora/Onboarding` | personalisation and user-controlled import flows |

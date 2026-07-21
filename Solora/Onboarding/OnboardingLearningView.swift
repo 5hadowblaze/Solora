@@ -201,7 +201,7 @@ private struct SoloraFormationField: View {
     private func formation(in size: CGSize, time: TimeInterval) -> some View {
         let progress = CGFloat(phase.rawValue) / CGFloat(max(1, SoloraLearningPhase.allCases.count - 1))
         let center = CGPoint(x: size.width / 2, y: size.height * 0.46)
-        let visibleSources = sources.isEmpty ? [SoloraOnboardingSource.cv, .calendar] : sources
+        let visibleSources = sources.isEmpty ? [.cv] : sources
         let radius = 112 - progress * 50
 
         return ZStack {

@@ -9,13 +9,6 @@ enum DemoFixtures {
         SoloraMoment(id: "brief", title: "Shipped the brief", summary: "Made a complex product idea simple enough for design and engineering to act on.", date: Date(timeIntervalSince1970: 1_720_345_600), world: .memoryShelves)
     ]
 
-    static let memoryShelvesManifest = WorldManifest(
-        kind: .memoryShelves,
-        title: "Memory Shelves",
-        subtitle: "The evidence that makes up your lore.",
-        shelves: ["Wins", "People", "Craft"]
-    )
-
     static func postEventReflection(id: String, date: Date, reflection: String) -> SoloraMoment {
         let trimmedReflection = reflection.trimmingCharacters(in: .whitespacesAndNewlines)
         return SoloraMoment(

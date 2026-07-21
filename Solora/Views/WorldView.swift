@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct WorldView: View {
-    let manifest: WorldManifest
     let moments: [SoloraMoment]
     let vibe: String
     let visualReference: String
@@ -20,14 +19,12 @@ struct WorldView: View {
     @State private var showsArchive = false
 
     init(
-        manifest: WorldManifest,
         moments: [SoloraMoment] = DemoFixtures.moments,
         vibe: String = "thoughtful",
         visualReference: String = "Inside Out orbs",
         focusMemoryID: String? = nil,
         onDelete: @escaping (SoloraMoment) -> Bool = { _ in true }
     ) {
-        self.manifest = manifest
         self.moments = moments
         self.vibe = vibe
         self.visualReference = visualReference
@@ -1070,7 +1067,7 @@ private struct MemoryDetail: View {
                 HStack(spacing: 24) {
                     detailLabel("Proof", value: "Saved")
                     detailLabel("Thread", value: thread)
-                    detailLabel("Source", value: "Calendar")
+                    detailLabel("Source", value: "Reflection")
                 }
 
                 Spacer(minLength: 18)
@@ -1079,7 +1076,7 @@ private struct MemoryDetail: View {
                     onClose()
                 } label: {
                     HStack {
-                        Text("Use in Share")
+                        Text("Back to your lore")
                         Spacer()
                         Image(systemName: "wand.and.rays")
                     }

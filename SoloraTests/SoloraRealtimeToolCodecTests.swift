@@ -26,13 +26,13 @@ struct SoloraRealtimeToolCodecTests {
 
     @Test func creationToolRequiresAnAppConfirmation() {
         let registry = LocalSoloraAssistantToolRegistry()
-        let result = registry.execute(.requestCreationFlowConfirmation(kind: .deck, target: "Portfolio review"))
+        let result = registry.execute(.requestCreationFlowConfirmation(kind: .post, target: "Portfolio review"))
 
         guard case .creationFlowConfirmationRequired(let pending) = result else {
             Issue.record("Expected a creation confirmation")
             return
         }
-        #expect(pending.kind == .deck)
+        #expect(pending.kind == .post)
         #expect(pending.target == "Portfolio review")
     }
 

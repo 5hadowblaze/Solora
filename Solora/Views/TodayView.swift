@@ -125,7 +125,7 @@ struct TodayView: View {
                             .monospacedDigit()
                     }
                     Spacer()
-                    Image(systemName: "calendar")
+                    Image(systemName: "sparkles")
                         .font(.system(size: 17, weight: .bold))
                         .padding(11)
                         .background(SoloraTheme.ink.opacity(0.12), in: Circle())

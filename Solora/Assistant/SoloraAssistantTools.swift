@@ -22,7 +22,6 @@ enum SoloraAssistantChildPresentation: String, Codable, Sendable {
     case reflection
     case memorySelection
     case talkingPoints
-    case deckPreview
 }
 
 enum SoloraAssistantCreationKind: String, CaseIterable, Codable, Sendable {
@@ -30,7 +29,6 @@ enum SoloraAssistantCreationKind: String, CaseIterable, Codable, Sendable {
     case post
     case cv
     case interview
-    case deck
 
     var title: String {
         switch self {
@@ -38,7 +36,6 @@ enum SoloraAssistantCreationKind: String, CaseIterable, Codable, Sendable {
         case .post: "post"
         case .cv: "CV"
         case .interview: "interview talking points"
-        case .deck: "deck"
         }
     }
 }
@@ -249,7 +246,7 @@ final class LocalSoloraAssistantToolRegistry: SoloraAssistantToolRegistry {
             name: "request_creation_flow_confirmation",
             description: "Ask the user to confirm before opening a Solora creation/share flow. This tool never creates or shares output by itself.",
             fields: [
-                .init(name: "kind", type: .enumeration, required: true, description: "Story, post, cv, interview, or deck."),
+                .init(name: "kind", type: .enumeration, required: true, description: "Story, post, CV, or interview talking points."),
                 .init(name: "target", type: .string, required: false, description: "Optional role, audience, or occasion supplied by the user.")
             ],
             requiresUserConfirmation: true

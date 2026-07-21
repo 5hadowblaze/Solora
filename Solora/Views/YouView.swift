@@ -6,11 +6,6 @@ struct YouView: View {
     let authenticatedUser: AuthenticatedUser
     let signOut: () -> Void
 
-    @StateObject private var cvStore: CVStore
-    @StateObject private var calendarStore: CalendarSourceStore
-    @State private var cvOn = true
-    @State private var showsCalendarReview = false
-
     init(
         vibe: String = "Warm & reflective",
         visualReference: String = "Core room",
@@ -21,11 +16,6 @@ struct YouView: View {
         self.visualReference = visualReference
         self.authenticatedUser = authenticatedUser
         self.signOut = signOut
-        _cvStore = StateObject(wrappedValue: CVStore(userID: authenticatedUser.id))
-        _calendarStore = StateObject(wrappedValue: CalendarSourceStore(
-            userID: authenticatedUser.id,
-            expectedEmail: authenticatedUser.email
-        ))
     }
 
     var body: some View {
@@ -38,11 +28,8 @@ struct YouView: View {
                         profile
                             .soloraEntrance()
 
-                        sourceSection
-                            .soloraEntrance(index: 1)
-
                         preferenceSection
-                            .soloraEntrance(index: 2)
+                            .soloraEntrance(index: 1)
 
                         HStack {
                             HStack(spacing: 8) {
@@ -62,13 +49,6 @@ struct YouView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .task(id: authenticatedUser.id) {
-                await cvStore.load()
-                await calendarStore.restoreConnectionState()
-            }
-            .sheet(isPresented: $showsCalendarReview) {
-                CalendarReviewSheet(store: calendarStore)
-            }
         }
     }
 
@@ -110,91 +90,6 @@ struct YouView: View {
             Text(authenticatedUser.initials)
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundStyle(SoloraTheme.cream)
-        }
-    }
-
-    private var sourceSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Sources")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(SoloraTheme.ink.opacity(0.52))
-
-            VStack(spacing: 0) {
-                masterCVRow
-                Divider().padding(.leading, 56)
-                calendarRow
-            }
-            .background(.white.opacity(0.50), in: RoundedRectangle(cornerRadius: 14))
-            .soloraHairline(radius: 14)
-        }
-    }
-
-    private var masterCVRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "doc.text.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(SoloraTheme.coral)
-                .frame(width: 30)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Master CV")
-                    .font(.subheadline.weight(.semibold))
-                Text(masterCVStatus)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(SoloraTheme.ink.opacity(0.46))
-            }
-            Spacer()
-            Toggle("", isOn: $cvOn)
-                .labelsHidden()
-                .tint(SoloraTheme.moss)
-        }
-        .foregroundStyle(SoloraTheme.ink)
-        .padding(.horizontal, 14)
-        .frame(height: 64)
-    }
-
-    private var masterCVStatus: String {
-        if let master = cvStore.master {
-            return "\(master.structuredEntryCount) entries · version \(master.version)"
-        }
-        if cvStore.isLoading { return "Loading your extended CV…" }
-        if cvStore.errorMessage != nil { return "Saved · sync unavailable" }
-        return "Extended CV source"
-    }
-
-    private var calendarRow: some View {
-        Button {
-            showsCalendarReview = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(SoloraTheme.gold)
-                    .frame(width: 30)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Google Calendar")
-                        .font(.subheadline.weight(.semibold))
-                    Text(calendarStore.status.label)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(calendarStatusColor)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(SoloraTheme.ink.opacity(0.24))
-            }
-            .foregroundStyle(SoloraTheme.ink)
-            .padding(.horizontal, 14)
-            .frame(height: 64)
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Opens privacy information and Calendar event review")
-    }
-
-    private var calendarStatusColor: Color {
-        switch calendarStore.status {
-        case .connected: SoloraTheme.moss
-        case .needsAttention: SoloraTheme.coral
-        case .checking, .notConnected: SoloraTheme.ink.opacity(0.46)
         }
     }
 

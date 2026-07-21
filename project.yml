@@ -32,6 +32,7 @@ targets:
       properties:
         CFBundleDisplayName: Solora
         NSMicrophoneUsageDescription: Talk with Solora using your voice.
+        NSSpeechRecognitionUsageDescription: Turn your spoken reflection into a private Solora memory.
         UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleTypeRole: Editor

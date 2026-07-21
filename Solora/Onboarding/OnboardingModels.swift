@@ -14,7 +14,6 @@ enum SoloraOnboardingStep: Int, CaseIterable {
 
 enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
     case cv
-    case calendar
     case chatGPT
 
     var id: String { rawValue }
@@ -22,7 +21,6 @@ enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
     var title: String {
         switch self {
         case .cv: "CV"
-        case .calendar: "Calendar"
         case .chatGPT: "ChatGPT memories"
         }
     }
@@ -30,7 +28,6 @@ enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
     var subtitle: String {
         switch self {
         case .cv: "Roles, projects and skills"
-        case .calendar: "Moments worth remembering"
         case .chatGPT: "Copy a prompt, then review what comes back"
         }
     }
@@ -38,7 +35,6 @@ enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
     var symbol: String {
         switch self {
         case .cv: "doc.text.fill"
-        case .calendar: "calendar"
         case .chatGPT: "bubble.left.and.bubble.right.fill"
         }
     }
@@ -46,7 +42,6 @@ enum SoloraOnboardingSource: String, CaseIterable, Hashable, Identifiable {
     var tint: Color {
         switch self {
         case .cv: SoloraTheme.coral
-        case .calendar: SoloraTheme.gold
         case .chatGPT: SoloraTheme.lavender
         }
     }

@@ -46,7 +46,6 @@ struct RootTabView: View {
                 .tag(SoloraAppSurface.now)
 
             WorldView(
-                manifest: container.worldManifest,
                 moments: momentStore.moments,
                 vibe: vibe,
                 visualReference: visualReference,
@@ -56,8 +55,8 @@ struct RootTabView: View {
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
             .tag(SoloraAppSurface.lore)
 
-            CreateView(moments: momentStore.moments, assistantStore: assistantStore)
-                .tabItem { Label("Share", systemImage: "wand.and.rays") }
+            MasterCVView(moments: momentStore.moments, userID: authenticatedUser.id)
+                .tabItem { Label("Share", systemImage: "doc.text.fill") }
                 .tag(SoloraAppSurface.share)
 
             YouView(
