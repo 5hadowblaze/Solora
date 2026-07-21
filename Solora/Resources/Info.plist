@@ -33,6 +33,8 @@
 	<string>1</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Talk with Solora using your voice.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photos and Live Photos to bring your private memories to life.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turn your spoken reflection into a private Solora memory.</string>
 	<key>UILaunchScreen</key>

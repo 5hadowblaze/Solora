@@ -35,6 +35,34 @@ final class SoloraMomentTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(SoloraMoment.self, from: data), moment)
     }
 
+    func testModernMomentKeepsReflectionAndVisualSequence() throws {
+        let moment = SoloraMoment(
+            id: "living-memory",
+            title: "Made the workshop useful",
+            summary: "I clarified the decision and aligned the team.",
+            reflection: "I led the workshop, clarified the decision, and aligned the team on what to do next.",
+            date: .now,
+            world: .memoryShelves,
+            memoryType: .work,
+            playbackStyle: .livingSequence,
+            visualAssets: [
+                .init(id: "one", posterPath: "users/a/wins/b/photos/one.jpg", motionPath: "users/a/wins/b/motion/one.mp4", kind: .livePhoto),
+                .init(id: "two", posterPath: "users/a/wins/b/photos/two.jpg")
+            ]
+        )
+
+        let restored = try JSONDecoder().decode(SoloraMoment.self, from: JSONEncoder().encode(moment))
+        XCTAssertEqual(restored.reflection, moment.reflection)
+        XCTAssertEqual(restored.memoryType, .work)
+        XCTAssertEqual(restored.playbackStyle, .livingSequence)
+        XCTAssertEqual(restored.visualAssets.count, 2)
+    }
+
+    func testMemoryCategorySuggestionDefaultsToEvent() {
+        XCTAssertEqual(MemoryCategory.suggest(for: "I caught up with the team at a conference."), .event)
+        XCTAssertEqual(MemoryCategory.suggest(for: "I finished my university course."), .education)
+    }
+
     func testUnknownWorldKindFallsBackToMemoryShelves() throws {
         let world = try JSONDecoder().decode(WorldKind.self, from: Data("\"future-world\"".utf8))
         XCTAssertEqual(world, .memoryShelves)

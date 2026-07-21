@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		049D2D1B3A66BB1CCA6ECF19 /* MemoryCreationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9A637013CED38EFFC9B2986 /* MemoryCreationSheet.swift */; };
 		10AF6111817888C6DF5FC156 /* SoloraOnboarding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E6724014CF0DF45A4BFCCC /* SoloraOnboarding.swift */; };
 		13E94F334F62BEFE8A920435 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = D1ED9F4F16A68322BBAFCE57 /* FirebaseAuth */; };
 		261FF9254D5F1109DF58E0A9 /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA8B6D374E99AA4FBEA23FF4 /* DemoFixtures.swift */; };
@@ -89,6 +90,7 @@
 		9EA3D523AA7BC89D101A4DC8 /* SoloraMomentMediaDataCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMomentMediaDataCache.swift; sourceTree = "<group>"; };
 		A0B0A51AA67B242B233A3877 /* SoloraOrbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraOrbView.swift; sourceTree = "<group>"; };
 		A104A207C456C7D67EB1211A /* SoloraAssistantStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraAssistantStore.swift; sourceTree = "<group>"; };
+		A9A637013CED38EFFC9B2986 /* MemoryCreationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryCreationSheet.swift; sourceTree = "<group>"; };
 		AEBDABE84210833189CE7553 /* WorldKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldKind.swift; sourceTree = "<group>"; };
 		AEF3F88E029B9CDB8E191566 /* SoloraMomentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMomentTests.swift; sourceTree = "<group>"; };
 		BA1A0ACA759AFD93F481D9C6 /* SoloraMoment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoloraMoment.swift; sourceTree = "<group>"; };
@@ -164,6 +166,7 @@
 			children = (
 				48DE87453DBD6D36FD2892EC /* ArchiveView.swift */,
 				C3498C4A02D28608B237DE6C /* MasterCVView.swift */,
+				A9A637013CED38EFFC9B2986 /* MemoryCreationSheet.swift */,
 				60926EECD4A6E9B8AC9DA584 /* RootTabView.swift */,
 				1F249FDB20658CBA8F5A35A9 /* TodayView.swift */,
 				FAC42E62749D6DECDB78E8C6 /* WorldView.swift */,
@@ -387,6 +390,7 @@
 				CFE5BE27D03272818812E71D /* FirebaseMomentRepository.swift in Sources */,
 				F2AF5F89A9ABC3B260D2DDC5 /* MasterCV.swift in Sources */,
 				8B39B0DD7B0D360D0B9EDA37 /* MasterCVView.swift in Sources */,
+				049D2D1B3A66BB1CCA6ECF19 /* MemoryCreationSheet.swift in Sources */,
 				616DFBFB4A97EE047DEF9A74 /* OnboardingComponents.swift in Sources */,
 				83B7EB1E06BE24594B2F061D /* OnboardingLearningView.swift in Sources */,
 				F4D2DAED918D1820882FFA0E /* OnboardingModels.swift in Sources */,

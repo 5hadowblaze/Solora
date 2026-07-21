@@ -13,6 +13,8 @@ struct RootTabView: View {
     @StateObject private var assistantStore: SoloraAssistantStore
     @State private var selection: SoloraAppSurface
     @State private var focusedMemoryID: String?
+    @State private var editingMemory: SoloraMoment?
+    @State private var assistantMemoryChange: SoloraAssistantPendingMemoryChange?
 
     init(
         container: AppContainer,
@@ -50,7 +52,8 @@ struct RootTabView: View {
                 vibe: vibe,
                 visualReference: visualReference,
                 focusMemoryID: focusedMemoryID,
-                onDelete: deleteMemory
+                onDelete: deleteMemory,
+                onEdit: { editingMemory = $0 }
             )
             .tabItem { Label("Lore", systemImage: "circle.grid.3x3.fill") }
             .tag(SoloraAppSurface.lore)
@@ -122,6 +125,21 @@ struct RootTabView: View {
                 confirmMemoryChange: confirmAssistantMemoryChange
             )
         }
+        .sheet(item: $editingMemory) { memory in
+            MemoryCreationSheet(existing: memory, onSave: saveReflection)
+        }
+        .sheet(item: $assistantMemoryChange) { pending in
+            let existing: SoloraMoment?
+            switch pending.change {
+            case .create: existing = nil
+            case .update(let memoryID): existing = momentStore.moments.first { $0.id == memoryID }
+            }
+            MemoryCreationSheet(
+                context: pending.draft.summary,
+                existing: existing,
+                onSave: saveReflection
+            )
+        }
         .alert("Couldn't sync your lore", isPresented: Binding(
             get: { momentStore.errorMessage != nil },
             set: { if !$0 { momentStore.clearError() } }
@@ -133,108 +151,88 @@ struct RootTabView: View {
     }
 
     private func confirmAssistantMemoryChange(_ pending: SoloraAssistantPendingMemoryChange) -> Bool {
-        let existing: SoloraMoment?
-        let identifier: String
         switch pending.change {
         case .create:
-            existing = nil
-            identifier = UUID().uuidString
+            break
         case .update(let memoryID):
-            existing = momentStore.moments.first { $0.id == memoryID }
-            guard existing != nil else { return false }
-            identifier = memoryID
+            guard momentStore.moments.contains(where: { $0.id == memoryID }) else { return false }
         }
-
-        let moment = SoloraMoment(
-            id: identifier,
-            title: pending.draft.title,
-            summary: pending.draft.summary,
-            date: pending.draft.occurredAt,
-            world: existing?.world ?? .memoryShelves,
-            category: pending.draft.category ?? existing?.category,
-            stickerPath: existing?.stickerPath,
-            photoPaths: existing?.photoPaths ?? []
-        )
-
-        var didSave = false
-        withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
-            didSave = momentStore.save(moment)
-        }
-        if didSave {
-            UIAccessibility.post(notification: .announcement, argument: "Confirmed memory saved to your lore")
-        }
-        return didSave
+        assistantMemoryChange = pending
+        assistantStore.isPanelPresented = false
+        return true
     }
 
     @MainActor
     private func saveReflection(
-        _ reflection: String,
-        photoData: Data?,
-        voiceAnnotation: String?,
+        _ payload: MemoryCreationPayload,
         onProgress: @escaping @MainActor (Double) -> Void
     ) async -> SoloraMoment? {
-        let identifier = UUID().uuidString
+        let identifier = payload.existingID ?? UUID().uuidString
         var photoPaths: [String] = []
-        var stickerPath: String?
+        var visualAssets: [MomentVisualAsset] = []
+        let existing = payload.existingID.flatMap { id in momentStore.moments.first { $0.id == id } }
 
-        let voiceDraft: VoiceMemoryDraft?
-        if let voiceAnnotation {
-            do {
-                voiceDraft = try await VoiceMemoryAnnotationService().makeDraft(from: voiceAnnotation)
-            } catch {
-                momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
-                    ?? "Solora could not shape that voice note into a memory. Please try again."
-                return nil
-            }
-        } else {
-            voiceDraft = nil
-        }
-
-        if let photoData {
-            do {
+        do {
+            for (index, photoData) in payload.media.enumerated() {
                 let path = try await FirebaseMomentMediaRepository.uploadPhoto(
                     photoData,
                     userID: authenticatedUser.id,
                     momentID: identifier,
-                    onProgress: onProgress
+                    onProgress: { fraction in
+                        onProgress((Double(index) + fraction) / Double(max(1, payload.media.count)))
+                    }
                 )
-                photoPaths = [path]
-
-                if let stickerData = SoloraStickerComposer.stickerPNG(from: photoData) {
-                    stickerPath = try? await FirebaseMomentMediaRepository.uploadSticker(
-                        stickerData,
+                photoPaths.append(path)
+                let motionPath: String?
+                if let motionData = payload.motionMedia.indices.contains(index) ? payload.motionMedia[index] : nil {
+                    motionPath = try await FirebaseMomentMediaRepository.uploadLivePhotoMotion(
+                        motionData,
                         userID: authenticatedUser.id,
-                        momentID: identifier
+                        momentID: identifier,
+                        onProgress: { fraction in
+                            onProgress((Double(index) + 0.5 + fraction * 0.5) / Double(max(1, payload.media.count)))
+                        }
                     )
+                } else {
+                    motionPath = payload.retainedMotionPaths.indices.contains(index) ? payload.retainedMotionPaths[index] : nil
                 }
-            } catch {
-                momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
-                    ?? "The photo could not be uploaded. Please try again."
-                return nil
+                visualAssets.append(MomentVisualAsset(
+                    posterPath: path,
+                    motionPath: motionPath,
+                    kind: motionPath == nil ? .photo : .livePhoto
+                ))
             }
+        } catch {
+            momentStore.errorMessage = (error as? LocalizedError)?.errorDescription
+                ?? "The memory media could not be uploaded. Please try again."
+            return nil
         }
 
-        let fixture = DemoFixtures.postEventReflection(
-            id: identifier,
-            date: .now,
-            reflection: reflection
-        )
+        guard !photoPaths.isEmpty else {
+            momentStore.errorMessage = "Choose at least one photo or Live Photo before saving this memory."
+            return nil
+        }
+
         let moment = SoloraMoment(
-            id: fixture.id,
-            title: voiceDraft?.title ?? fixture.title,
-            summary: voiceDraft?.summary ?? fixture.summary,
-            date: fixture.date,
-            world: fixture.world,
-            category: voiceDraft.flatMap { $0.category.isEmpty ? nil : $0.category } ?? fixture.category,
-            stickerPath: stickerPath ?? fixture.stickerPath,
+            id: identifier,
+            title: payload.title,
+            summary: payload.summary,
+            reflection: payload.reflection,
+            date: existing?.date ?? .now,
+            world: existing?.world ?? .memoryShelves,
+            category: payload.memoryType.title,
+            memoryType: payload.memoryType,
+            playbackStyle: payload.playbackStyle,
+            visualAssets: visualAssets,
+            stickerPath: existing?.stickerPath,
             photoPaths: photoPaths
         )
         var didSave = false
         withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
-            didSave = momentStore.save(moment)
+            didSave = existing == nil ? momentStore.save(moment) : momentStore.update(moment)
         }
         guard didSave else { return nil }
-        UIAccessibility.post(notification: .announcement, argument: "Reflection saved to your archive")
+        UIAccessibility.post(notification: .announcement, argument: existing == nil ? "Memory saved to your lore" : "Memory updated")
         return moment
     }
 

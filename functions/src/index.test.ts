@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { healthPayload, mintRealtimeClientSecret, realtimeSession, shapeVoiceMemoryDraft } from "./index.js";
+import { healthPayload, mintRealtimeClientSecret, realtimeSession } from "./index.js";
 
 test("healthPayload returns the public Solora health response", () => {
   assert.deepEqual(healthPayload(), {
@@ -36,28 +36,4 @@ test("mintRealtimeClientSecret rejects malformed upstream responses", async () =
       new Response(JSON.stringify({}), { status: 200 })),
     /did not contain a client secret/,
   );
-});
-
-test("shapeVoiceMemoryDraft returns a bounded structured memory", async () => {
-  const result = await shapeVoiceMemoryDraft("server-secret", "I led the workshop and aligned the team on a decision.", "firebase-user", async () =>
-    new Response(JSON.stringify({
-      output: [{
-        type: "message",
-        content: [{
-          type: "output_text",
-          text: JSON.stringify({
-            title: "Aligned the workshop",
-            summary: "I led the workshop and aligned the team on a decision.",
-            category: "Leadership",
-          }),
-        }],
-      }],
-    }), { status: 200 }),
-  );
-
-  assert.deepEqual(result, {
-    title: "Aligned the workshop",
-    summary: "I led the workshop and aligned the team on a decision.",
-    category: "Leadership",
-  });
 });

@@ -6,6 +6,7 @@ import Vision
 
 enum FirebaseMomentMediaRepository {
     static let maximumUploadBytes = 8 * 1024 * 1024
+    static let maximumMotionUploadBytes = 16 * 1024 * 1024
 
     static func uploadPhoto(
         _ data: Data,
@@ -52,6 +53,32 @@ enum FirebaseMomentMediaRepository {
 
         do {
             _ = try await Storage.storage().reference(withPath: path).putDataAsync(data, metadata: metadata)
+            return path
+        } catch {
+            throw MomentMediaError.uploadFailed(userFacingMessage(for: error))
+        }
+    }
+
+    static func uploadLivePhotoMotion(
+        _ data: Data,
+        userID: String,
+        momentID: String,
+        onProgress: @escaping @MainActor (Double) -> Void
+    ) async throws -> String {
+        guard !userID.isEmpty, !momentID.isEmpty else { throw MomentMediaError.missingOwner }
+        guard !data.isEmpty, data.count <= maximumMotionUploadBytes else { throw MomentMediaError.invalidMotionSize }
+
+        let fileName = "\(UUID().uuidString.lowercased()).mov"
+        let path = "users/\(userID)/wins/\(momentID)/motion/\(fileName)"
+        let metadata = StorageMetadata()
+        metadata.contentType = "video/quicktime"
+        metadata.cacheControl = "private,max-age=86400"
+        do {
+            _ = try await Storage.storage().reference(withPath: path).putDataAsync(data, metadata: metadata) { progress in
+                let fraction = progress?.fractionCompleted ?? 0
+                Task { @MainActor in onProgress(min(1, max(0, fraction))) }
+            }
+            await onProgress(1)
             return path
         } catch {
             throw MomentMediaError.uploadFailed(userFacingMessage(for: error))
@@ -182,11 +209,12 @@ private extension CGImagePropertyOrientation {
 }
 
 enum MomentMediaError: LocalizedError {
-    case missingOwner, invalidSize, invalidPath, uploadFailed(String), downloadFailed
+    case missingOwner, invalidSize, invalidMotionSize, invalidPath, uploadFailed(String), downloadFailed
     var errorDescription: String? {
         switch self {
         case .missingOwner: "Sign in before adding a photo."
         case .invalidSize: "Choose a photo smaller than 8 MB."
+        case .invalidMotionSize: "Choose a Live Photo with a motion clip smaller than 16 MB."
         case .invalidPath: "This memory does not contain a valid photo reference."
         case .uploadFailed(let message): message
         case .downloadFailed: "This memory's photo is not available right now."

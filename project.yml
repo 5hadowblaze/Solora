@@ -32,6 +32,8 @@ targets:
       properties:
         CFBundleDisplayName: Solora
         NSMicrophoneUsageDescription: Talk with Solora using your voice.
+
+        NSPhotoLibraryUsageDescription: Choose photos and Live Photos to bring your private memories to life.
         NSSpeechRecognitionUsageDescription: Turn your spoken reflection into a private Solora memory.
         UILaunchScreen: {}
         CFBundleURLTypes:

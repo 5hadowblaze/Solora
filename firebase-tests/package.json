@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test firestore.rules.test.mjs"
+    "test": "node --test firestore.rules.test.mjs",
+    "test:emulator": "JAVA_HOME=\"${JAVA_HOME:-$(brew --prefix openjdk@21)/libexec/openjdk.jdk/Contents/Home}\" firebase emulators:exec --only firestore \"npm test\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",

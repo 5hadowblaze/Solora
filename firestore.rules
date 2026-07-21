@@ -20,7 +20,8 @@ service cloud.firestore {
     function validSoloraMoment(momentId, data) {
       return data.keys().hasOnly([
           'id', 'title', 'caption', 'occurredAt', 'createdAt', 'updatedAt',
-          'world', 'schemaVersion', 'category', 'stickerPath', 'photoPaths'
+          'world', 'schemaVersion', 'category', 'stickerPath', 'photoPaths',
+          'reflection', 'memoryType', 'playbackStyle', 'visualAssets'
         ])
         && data.keys().hasAll([
           'id', 'title', 'caption', 'occurredAt', 'createdAt', 'updatedAt',
@@ -37,13 +38,24 @@ service cloud.firestore {
         && data.caption.size() > 0
         && data.caption.size() <= 2000
         && data.occurredAt is timestamp
-        && data.createdAt == request.time
+        && data.createdAt is timestamp
         && data.updatedAt == request.time
         && data.world == 'memoryShelves'
-        && data.schemaVersion == 1
+        && data.schemaVersion in [1, 2]
         && validOptionalString(data, 'category', 40)
         && validOptionalString(data, 'stickerPath', 512)
-        && validList(data, 'photoPaths', 10);
+        && validList(data, 'photoPaths', 10)
+        && (data.schemaVersion == 1 || (
+          data.keys().hasAll(['reflection', 'memoryType', 'playbackStyle', 'visualAssets'])
+          && data.reflection is string
+          && data.reflection.size() > 0
+          && data.reflection.size() <= 8000
+          && data.memoryType in ['personal', 'work', 'event', 'education', 'travel']
+          && data.playbackStyle in ['photoSequence', 'livingSequence']
+          && data.visualAssets is list
+          && data.visualAssets.size() > 0
+          && data.visualAssets.size() <= 5
+        ));
     }
 
     match /users/{userId} {
@@ -53,9 +65,15 @@ service cloud.firestore {
 
       match /wins/{momentId} {
         allow get, list: if owns(userId);
-        allow create: if owns(userId) && validSoloraMoment(momentId, request.resource.data);
+        allow create: if owns(userId)
+          && validSoloraMoment(momentId, request.resource.data)
+          && request.resource.data.createdAt == request.time;
         allow delete: if owns(userId);
-        allow update: if false;
+        allow update: if owns(userId)
+          && validSoloraMoment(momentId, request.resource.data)
+          && request.resource.data.id == resource.data.id
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == request.time;
       }
 
       match /cvDocuments/{documentId} {

@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import UIKit
 
@@ -9,6 +10,9 @@ struct SoloraOrbView: View {
     var isAlive = false
     var showsHalo = false
     var mediaPath: String?
+    var mediaPaths: [String] = []
+    var visualAssets: [MomentVisualAsset] = []
+    var playbackStyle: MemoryPlaybackStyle = .photoSequence
     var stickerPath: String?
 
     var body: some View {
@@ -33,6 +37,13 @@ struct SoloraOrbView: View {
         let driftX = cos(phase * 0.52) * size * 0.055
         let driftY = sin(phase * 0.43) * size * 0.045
         let rimWidth = max(1, size * 0.016)
+        let availableMedia = visualAssets.isEmpty
+            ? (mediaPaths.isEmpty ? [mediaPath].compactMap { $0 } : mediaPaths)
+            : visualAssets.map(\.posterPath)
+        let mediaIndex = availableMedia.isEmpty ? 0 : Int((phase / 3.4).rounded(.down)) % availableMedia.count
+        let motionPath = playbackStyle == .livingSequence && visualAssets.indices.contains(mediaIndex)
+            ? visualAssets[mediaIndex].motionPath
+            : nil
 
         return ZStack {
             if showsHalo {
@@ -111,10 +122,19 @@ struct SoloraOrbView: View {
             }
             .clipShape(Circle().inset(by: size * 0.025))
 
-            if let mediaPath, !mediaPath.isEmpty {
-                SoloraMomentMediaImage(path: mediaPath)
+            if let selectedMediaPath = availableMedia.indices.contains(mediaIndex) ? availableMedia[mediaIndex] : nil,
+               !selectedMediaPath.isEmpty {
+                Group {
+                    if let motionPath, isAlive && !reduceMotion {
+                        SoloraMomentMotionPlayer(path: motionPath)
+                    } else {
+                        SoloraMomentMediaImage(path: selectedMediaPath)
+                    }
+                }
                     .frame(width: size * 0.94, height: size * 0.94)
                     .clipShape(Circle())
+                    .id(selectedMediaPath)
+                    .transition(.opacity)
                     .overlay {
                         Circle().fill(
                             LinearGradient(
@@ -124,6 +144,7 @@ struct SoloraOrbView: View {
                             )
                         )
                     }
+                    .animation(.easeInOut(duration: 0.8), value: selectedMediaPath)
             }
 
             if let stickerPath, !stickerPath.isEmpty {
@@ -181,6 +202,50 @@ struct SoloraOrbView: View {
         .compositingGroup()
         .shadow(color: SoloraTheme.plum.opacity(0.16), radius: size * 0.05, y: size * 0.04)
         .shadow(color: color.opacity(0.3), radius: size * 0.18, y: size * 0.1)
+    }
+}
+
+private struct SoloraMomentMotionPlayer: View {
+    let path: String
+    @State private var player: AVQueuePlayer?
+    @State private var looper: AVPlayerLooper?
+
+    var body: some View {
+        PlayerLayerView(player: player)
+            .task(id: path) {
+                guard let url = try? await FirebaseMomentMediaRepository.downloadURL(for: path) else { return }
+                let player = AVQueuePlayer()
+                let item = AVPlayerItem(url: url)
+                looper = AVPlayerLooper(player: player, templateItem: item)
+                self.player = player
+                player.isMuted = true
+                player.play()
+            }
+            .onDisappear {
+                player?.pause()
+                looper = nil
+                player = nil
+            }
+    }
+}
+
+private struct PlayerLayerView: UIViewRepresentable {
+    let player: AVPlayer?
+
+    func makeUIView(context: Context) -> PlayerView { PlayerView() }
+    func updateUIView(_ view: PlayerView, context: Context) { view.playerLayer.player = player }
+
+    final class PlayerView: UIView {
+        override class var layerClass: AnyClass { AVPlayerLayer.self }
+        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            playerLayer.videoGravity = .resizeAspectFill
+            playerLayer.backgroundColor = UIColor.clear.cgColor
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     }
 }
 

@@ -110,7 +110,7 @@ final class SoloraAssistantStore: ObservableObject {
         guard let pendingMemoryChange else { return }
         if handler(pendingMemoryChange) {
             self.pendingMemoryChange = nil
-            statusMessage = "Saved to your lore after your confirmation."
+            statusMessage = "Opening the memory creator for your review."
         } else {
             statusMessage = "That memory could not be saved. Review it and try again."
         }

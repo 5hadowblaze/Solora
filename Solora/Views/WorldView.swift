@@ -6,6 +6,7 @@ struct WorldView: View {
     let visualReference: String
     let focusMemoryID: String?
     let onDelete: (SoloraMoment) -> Bool
+    let onEdit: (SoloraMoment) -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var memoryNamespace
@@ -17,27 +18,32 @@ struct WorldView: View {
     @State private var expandedID: String?
     @State private var settledDrag: CGSize = .zero
     @State private var showsArchive = false
+    @State private var colorLens = false
+    @State private var selectedCategory: MemoryCategory?
 
     init(
         moments: [SoloraMoment] = DemoFixtures.moments,
         vibe: String = "thoughtful",
         visualReference: String = "Inside Out orbs",
         focusMemoryID: String? = nil,
-        onDelete: @escaping (SoloraMoment) -> Bool = { _ in true }
+        onDelete: @escaping (SoloraMoment) -> Bool = { _ in true },
+        onEdit: @escaping (SoloraMoment) -> Void = { _ in }
     ) {
         self.moments = moments
         self.vibe = vibe
         self.visualReference = visualReference
         self.focusMemoryID = focusMemoryID
         self.onDelete = onDelete
-        _skin = State(initialValue: LoreSkin.initial(for: visualReference))
+        self.onEdit = onEdit
+        _skin = State(initialValue: .coreRoom)
         _selectedID = State(initialValue: moments.first?.id)
     }
 
     private var displayedMoments: [SoloraMoment] {
-        var displayed = Array(moments.prefix(6))
+        let filtered = selectedCategory.map { type in moments.filter { $0.memoryType == type } } ?? moments
+        var displayed = Array(filtered.prefix(6))
         if let focusMemoryID,
-           let focused = moments.first(where: { $0.id == focusMemoryID }),
+           let focused = filtered.first(where: { $0.id == focusMemoryID }),
            !displayed.contains(where: { $0.id == focused.id }) {
             displayed = [focused] + displayed.dropLast()
         }
@@ -88,7 +94,8 @@ struct WorldView: View {
                             color: color(for: moment),
                             namespace: memoryNamespace,
                             onClose: closeDetail,
-                            onDelete: { deleteMemory(moment) }
+                            onDelete: { deleteMemory(moment) },
+                            onEdit: { onEdit(moment) }
                         )
                         .transition(reduceMotion ? .opacity : .soloraReveal)
                         .zIndex(10)
@@ -124,24 +131,24 @@ struct WorldView: View {
             Spacer()
 
             Menu {
-                ForEach(LoreSkin.allCases) { option in
-                    Button {
-                        withAnimation(reduceMotion ? nil : SoloraMotion.spatial) {
-                            skin = option
-                            settledDrag = .zero
-                        }
-                    } label: {
-                        Label(option.title, systemImage: option.symbol)
+                Button(colorLens ? "Hide colour lens" : "Show colour lens") {
+                    withAnimation(reduceMotion ? nil : SoloraMotion.spatial) { colorLens.toggle(); if !colorLens { selectedCategory = nil } }
+                }
+                if colorLens {
+                    Divider()
+                    Button("All memories") { selectedCategory = nil }
+                    ForEach(MemoryCategory.allCases) { type in
+                        Button(type.title) { selectedCategory = type }
                     }
                 }
             } label: {
-                Image(systemName: "paintpalette.fill")
-                    .symbolEffect(.bounce, value: skin)
+                Image(systemName: colorLens ? "circle.hexagongrid.fill" : "circle.hexagongrid")
+                    .symbolEffect(.bounce, value: colorLens)
                     .frame(width: 44, height: 44)
                     .background(skin.controlFill, in: Circle())
             }
             .buttonStyle(SoloraPressButtonStyle())
-            .accessibilityLabel("World style: \(skin.title)")
+            .accessibilityLabel(colorLens ? "Colour lens" : "Show colour lens")
 
             Button { showsArchive = true } label: {
                 Image(systemName: "rectangle.stack.fill")
@@ -165,7 +172,8 @@ struct WorldView: View {
                         SoloraOrbView(
                             size: 42,
                             color: color(for: moment),
-                            mediaPath: moment.bubblePhotoPath,
+                            visualAssets: moment.visualAssets,
+                            playbackStyle: moment.playbackStyle,
                             stickerPath: moment.bubbleStickerPath
                         )
                             .accessibilityHidden(true)
@@ -267,8 +275,14 @@ struct WorldView: View {
     }
 
     private func color(for moment: SoloraMoment) -> Color {
-        let index = displayedMoments.firstIndex(where: { $0.id == moment.id }) ?? 0
-        return SoloraTheme.orbColors[index % SoloraTheme.orbColors.count]
+        guard colorLens else { return SoloraTheme.cream }
+        return switch moment.memoryType {
+        case .personal: SoloraTheme.coral
+        case .work: SoloraTheme.gold
+        case .event: SoloraTheme.lavender
+        case .education: Color.purple
+        case .travel: SoloraTheme.moss
+        }
     }
 }
 
@@ -874,7 +888,8 @@ private struct LoreCanvas: View {
                     color: color,
                     isAlive: isSelected && !isExpanded,
                     showsHalo: isSelected,
-                    mediaPath: moment.bubblePhotoPath,
+                    visualAssets: moment.visualAssets,
+                    playbackStyle: moment.playbackStyle,
                     stickerPath: moment.bubbleStickerPath
                 )
                 .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: !isExpanded)
@@ -1000,6 +1015,7 @@ private struct MemoryDetail: View {
     let namespace: Namespace.ID
     let onClose: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsDeleteConfirmation = false
@@ -1040,7 +1056,8 @@ private struct MemoryDetail: View {
                         color: color,
                         isAlive: true,
                         showsHalo: true,
-                        mediaPath: moment.bubblePhotoPath,
+                        visualAssets: moment.visualAssets,
+                        playbackStyle: moment.playbackStyle,
                         stickerPath: moment.bubbleStickerPath
                     )
                         .matchedGeometryEffect(id: "orb-\(moment.id)", in: namespace, isSource: false)
@@ -1073,12 +1090,12 @@ private struct MemoryDetail: View {
                 Spacer(minLength: 18)
 
                 Button {
-                    onClose()
+                    onEdit()
                 } label: {
                     HStack {
-                        Text("Back to your lore")
+                        Text("Edit memory")
                         Spacer()
-                        Image(systemName: "wand.and.rays")
+                        Image(systemName: "pencil")
                     }
                     .font(.headline.weight(.bold))
                     .foregroundStyle(SoloraTheme.cream)

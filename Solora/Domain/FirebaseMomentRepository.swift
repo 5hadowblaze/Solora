@@ -68,11 +68,32 @@ enum FirebaseMomentRepository {
         }
     }
 
+    static func updateMoment(
+        _ moment: SoloraMoment,
+        userID: String,
+        completion: @escaping (String?) -> Void
+    ) throws {
+        try validate(moment)
+        let document = collection(userID: userID).document(moment.id)
+        try document.setData(from: FirestoreMomentUpdate(moment: moment), merge: true) { error in
+            completion(error.map(userFacingMessage(for:)))
+        }
+    }
+
     static func moment(documentID: String, data: [String: Any]) -> SoloraMoment? {
         guard let title = nonEmptyString(data["title"]) else { return nil }
 
         let star = data["star"] as? [String: Any]
         let photoPaths = data["photoPaths"] as? [String] ?? []
+        let visualAssets = (data["visualAssets"] as? [[String: Any]] ?? []).compactMap { asset -> MomentVisualAsset? in
+            guard let posterPath = nonEmptyString(asset["posterPath"]) else { return nil }
+            return MomentVisualAsset(
+                id: nonEmptyString(asset["id"]) ?? UUID().uuidString,
+                posterPath: posterPath,
+                motionPath: nonEmptyString(asset["motionPath"]),
+                kind: MomentVisualAsset.Kind(rawValue: nonEmptyString(asset["kind"]) ?? "") ?? .photo
+            )
+        }
         let summary = nonEmptyString(data["caption"])
             ?? nonEmptyString(star?["result"])
             ?? "Imported from Career Fridge."
@@ -85,9 +106,13 @@ enum FirebaseMomentRepository {
             id: documentID,
             title: title,
             summary: summary,
+            reflection: nonEmptyString(data["reflection"]) ?? summary,
             date: date,
             world: WorldKind(rawValue: nonEmptyString(data["world"]) ?? "") ?? .memoryShelves,
             category: nonEmptyString(data["category"]),
+            memoryType: MemoryCategory(rawValue: nonEmptyString(data["memoryType"]) ?? ""),
+            playbackStyle: MemoryPlaybackStyle(rawValue: nonEmptyString(data["playbackStyle"]) ?? "") ?? .photoSequence,
+            visualAssets: visualAssets,
             stickerPath: nonEmptyString(data["stickerPath"]),
             photoPaths: Array(photoPaths.prefix(10))
         )
@@ -105,10 +130,16 @@ enum FirebaseMomentRepository {
               moment.summary.count <= 2_000 else {
             throw MomentRepositoryError.invalidSummary
         }
+        guard !moment.reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              moment.reflection.count <= 8_000 else {
+            throw MomentRepositoryError.invalidReflection
+        }
         guard moment.category?.count ?? 0 <= 40,
               moment.stickerPath?.count ?? 0 <= 512,
               moment.photoPaths.count <= 10,
-              moment.photoPaths.allSatisfy({ $0.count <= 512 }) else {
+              moment.photoPaths.allSatisfy({ $0.count <= 512 }),
+              moment.visualAssets.count <= 5,
+              moment.visualAssets.allSatisfy({ $0.posterPath.count <= 512 && ($0.motionPath?.count ?? 0) <= 512 }) else {
             throw MomentRepositoryError.invalidMedia
         }
     }
@@ -218,6 +249,29 @@ final class MomentStore: ObservableObject {
         }
     }
 
+    @discardableResult
+    func update(_ moment: SoloraMoment) -> Bool {
+        errorMessage = nil
+        switch backend {
+        case .demo:
+            insertOptimistically(moment)
+            return true
+        case .firestore(let userID):
+            do {
+                try FirebaseMomentRepository.updateMoment(moment, userID: userID) { [weak self] message in
+                    guard let message else { return }
+                    Task { @MainActor [weak self] in self?.errorMessage = message }
+                }
+                insertOptimistically(moment)
+                hasPendingWrites = true
+                return true
+            } catch {
+                errorMessage = (error as? LocalizedError)?.errorDescription ?? "This memory could not be updated. Please try again."
+                return false
+            }
+        }
+    }
+
     func clearError() {
         errorMessage = nil
     }
@@ -270,12 +324,16 @@ private struct FirestoreMomentWrite: Encodable {
     let id: String
     let title: String
     let caption: String
+    let reflection: String
     let occurredAt: Date
     @ServerTimestamp var createdAt: Date?
     @ServerTimestamp var updatedAt: Date?
     let world: String
     let schemaVersion: Int
     let category: String?
+    let memoryType: String
+    let playbackStyle: String
+    let visualAssets: [MomentVisualAsset]
     let stickerPath: String?
     let photoPaths: [String]
 
@@ -283,12 +341,48 @@ private struct FirestoreMomentWrite: Encodable {
         id = moment.id
         title = moment.title
         caption = moment.summary
+        reflection = moment.reflection
         occurredAt = moment.date
         createdAt = nil
         updatedAt = nil
         world = moment.world.rawValue
-        schemaVersion = 1
+        schemaVersion = 2
         category = moment.category
+        memoryType = moment.memoryType.rawValue
+        playbackStyle = moment.playbackStyle.rawValue
+        visualAssets = moment.visualAssets
+        stickerPath = moment.stickerPath
+        photoPaths = moment.photoPaths
+    }
+}
+
+private struct FirestoreMomentUpdate: Encodable {
+    let title: String
+    let caption: String
+    let reflection: String
+    let occurredAt: Date
+    @ServerTimestamp var updatedAt: Date?
+    let world: String
+    let schemaVersion: Int
+    let category: String?
+    let memoryType: String
+    let playbackStyle: String
+    let visualAssets: [MomentVisualAsset]
+    let stickerPath: String?
+    let photoPaths: [String]
+
+    init(moment: SoloraMoment) {
+        title = moment.title
+        caption = moment.summary
+        reflection = moment.reflection
+        occurredAt = moment.date
+        updatedAt = nil
+        world = moment.world.rawValue
+        schemaVersion = 2
+        category = moment.category
+        memoryType = moment.memoryType.rawValue
+        playbackStyle = moment.playbackStyle.rawValue
+        visualAssets = moment.visualAssets
         stickerPath = moment.stickerPath
         photoPaths = moment.photoPaths
     }
@@ -298,6 +392,7 @@ private enum MomentRepositoryError: LocalizedError {
     case invalidIdentifier
     case invalidTitle
     case invalidSummary
+    case invalidReflection
     case invalidMedia
 
     var errorDescription: String? {
@@ -308,6 +403,8 @@ private enum MomentRepositoryError: LocalizedError {
             "Keep the moment title between 1 and 120 characters."
         case .invalidSummary:
             "Keep the reflection between 1 and 2,000 characters."
+        case .invalidReflection:
+            "Keep what happened to 8,000 characters or fewer."
         case .invalidMedia:
             "This moment contains too many or invalid media references."
         }

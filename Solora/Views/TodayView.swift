@@ -3,14 +3,13 @@ import PhotosUI
 import SwiftUI
 import UIKit
 import Speech
-@preconcurrency import FirebaseFunctions
 
 struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let moments: [SoloraMoment]
     let assistantStore: SoloraAssistantStore
-    let onSave: @MainActor (String, Data?, String?, @escaping @MainActor (Double) -> Void) async -> SoloraMoment?
+    let onSave: @MainActor (MemoryCreationPayload, @escaping @MainActor (Double) -> Void) async -> SoloraMoment?
     let onOpenMemory: @MainActor (String) -> Void
 
     @State private var showsCapture = false
@@ -18,6 +17,7 @@ struct TodayView: View {
     @State private var savedReflection = false
     @State private var captureTask: Task<Void, Never>?
     @State private var toastTask: Task<Void, Never>?
+    @State private var captureContext: String?
 
     var body: some View {
         NavigationStack {
@@ -44,8 +44,12 @@ struct TodayView: View {
             .sheet(isPresented: $showsCapture, onDismiss: {
                 assistantStore.endChildPresentation(.reflection)
             }) {
-                CaptureMomentSheet(assistantStore: assistantStore) { reflection, photoData, voiceAnnotation, onProgress in
-                    await completeCapture(reflection, photoData: photoData, voiceAnnotation: voiceAnnotation, onProgress: onProgress)
+                MemoryCreationSheet(context: captureContext) { payload, onProgress in
+                    let saved = await onSave(payload, onProgress)
+                    guard let saved else { return nil }
+                    savedReflection = true
+                    onOpenMemory(saved.id)
+                    return saved
                 }
             }
             .overlay {
@@ -145,6 +149,7 @@ struct TodayView: View {
 
                 Button {
                     savedReflection = false
+                    captureContext = "Product strategy workshop"
                     assistantStore.beginReflection(context: "Product strategy workshop")
                     assistantStore.beginChildPresentation(.reflection)
                     showsCapture = true
@@ -200,9 +205,7 @@ struct TodayView: View {
 
     @MainActor
     private func completeCapture(
-        _ reflection: String,
-        photoData: Data?,
-        voiceAnnotation: String? = nil,
+        _ payload: MemoryCreationPayload,
         onProgress: @escaping @MainActor (Double) -> Void
     ) async -> Bool {
         captureTask?.cancel()
@@ -213,7 +216,7 @@ struct TodayView: View {
             showsFormation = true
         }
 
-        guard let savedMoment = await onSave(reflection, photoData, voiceAnnotation, onProgress) else {
+        guard let savedMoment = await onSave(payload, onProgress) else {
             withAnimation(reduceMotion ? .easeOut(duration: 0.16) : SoloraMotion.responsive) {
                 showsFormation = false
             }
@@ -229,9 +232,7 @@ struct TodayView: View {
                 savedReflection = true
             }
 
-            if voiceAnnotation != nil {
-                onOpenMemory(savedMoment.id)
-            }
+            onOpenMemory(savedMoment.id)
 
             toastTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(2.1))
@@ -254,7 +255,8 @@ private struct RecentMemory: View {
             SoloraOrbView(
                 size: 68,
                 color: color,
-                mediaPath: moment.bubblePhotoPath,
+                visualAssets: moment.visualAssets,
+                playbackStyle: moment.playbackStyle,
                 stickerPath: moment.bubbleStickerPath
             )
                 .accessibilityHidden(true)
@@ -649,35 +651,6 @@ private enum VoiceAnnotationRecorderError: Error {
     case couldNotRecord
 }
 
-struct VoiceMemoryDraft: Decodable, Equatable {
-    let title: String
-    let summary: String
-    let category: String
-}
-
-struct VoiceMemoryAnnotationService {
-    func makeDraft(from transcript: String) async throws -> VoiceMemoryDraft {
-        let result = try await Functions.functions()
-            .httpsCallable("annotateVoiceMemory")
-            .call(["transcript": transcript])
-        guard let payload = result.data as? [String: Any],
-              let title = payload["title"] as? String,
-              let summary = payload["summary"] as? String,
-              let category = payload["category"] as? String else {
-            throw VoiceMemoryAnnotationError.invalidResponse
-        }
-        return VoiceMemoryDraft(title: title, summary: summary, category: category)
-    }
-}
-
-enum VoiceMemoryAnnotationError: LocalizedError {
-    case invalidResponse
-
-    var errorDescription: String? {
-        "Solora could not shape that voice note into a memory. Please try again."
-    }
-}
-
 private struct SoloraFormationOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var trigger = 0
@@ -792,7 +765,8 @@ struct MomentRow: View {
             SoloraOrbView(
                 size: 44,
                 color: color,
-                mediaPath: moment.bubblePhotoPath,
+                visualAssets: moment.visualAssets,
+                playbackStyle: moment.playbackStyle,
                 stickerPath: moment.bubbleStickerPath
             )
                 .accessibilityHidden(true)
