@@ -359,60 +359,43 @@ private enum MemoryDraftMaker {
     @Published var isRecording = false
     @Published var errorMessage: String?
     @Published private var elapsed = 0
-    private let recognizer = SFSpeechRecognizer()
-    private let engine = AVAudioEngine()
-    private var request: SFSpeechAudioBufferRecognitionRequest?
-    private var task: SFSpeechRecognitionTask?
+    private let capture = VoiceCaptureEngine()
     private var timer: Timer?
-    private var hasInputTap = false
-    private let audioLevelPipe = AudioLevelPipe()
-    private var audioLevelObservation: NSObjectProtocol?
+    private var observations: [NSObjectProtocol] = []
 
     override init() {
         super.init()
-        audioLevelObservation = NotificationCenter.default.addObserver(
-            forName: AudioLevelPipe.didUpdate,
-            object: audioLevelPipe,
-            queue: .main
-        ) { [weak self] notification in
-            guard let level = notification.userInfo?[AudioLevelPipe.levelKey] as? CGFloat else { return }
-            Task { @MainActor [weak self] in
-                self?.audioLevel = level
+        observations = [
+            NotificationCenter.default.addObserver(forName: VoiceCaptureEngine.didUpdateLevel, object: capture, queue: .main) { [weak self] notification in
+                let level = notification.userInfo?[VoiceCaptureEngine.levelKey] as? CGFloat ?? 0
+                Task { @MainActor [weak self, level] in self?.audioLevel = level }
+            },
+            NotificationCenter.default.addObserver(forName: VoiceCaptureEngine.didUpdateTranscript, object: capture, queue: .main) { [weak self] notification in
+                let transcript = notification.userInfo?[VoiceCaptureEngine.transcriptKey] as? String ?? ""
+                Task { @MainActor [weak self, transcript] in self?.transcript = transcript }
+            },
+            NotificationCenter.default.addObserver(forName: VoiceCaptureEngine.didFail, object: capture, queue: .main) { [weak self] notification in
+                let message = notification.userInfo?[VoiceCaptureEngine.messageKey] as? String
+                    ?? "Solora couldn't hear a clear reflection. You can type it instead."
+                Task { @MainActor [weak self, message] in
+                    guard let self else { return }
+                    self.errorMessage = message
+                    self.stop()
+                }
             }
-        }
+        ]
     }
 
     var elapsedLabel: String { String(format: "%d:%02d", elapsed / 60, elapsed % 60) }
 
     func start() async {
         guard !isRecording else { return }
-        guard await speechAllowed(), await microphoneAllowed(), recognizer?.isAvailable == true else { errorMessage = "Allow on-device Speech Recognition and Microphone access to speak your memory."; return }
+        guard await speechAllowed(), await microphoneAllowed(), capture.isAvailable else { errorMessage = "Allow on-device Speech Recognition and Microphone access to speak your memory."; return }
         do {
             stop()
-            let audio = AVAudioSession.sharedInstance(); try audio.setCategory(.record, mode: .measurement, options: [.duckOthers]); try audio.setActive(true)
-            let request = SFSpeechAudioBufferRecognitionRequest(); request.shouldReportPartialResults = true; request.requiresOnDeviceRecognition = true
-            self.request = request; transcript = ""; elapsed = 0; errorMessage = nil
-            let input = engine.inputNode
-            let format = input.inputFormat(forBus: 0)
-            guard format.sampleRate > 0, format.channelCount > 0 else {
-                throw VoiceCaptureError.noMicrophoneInput
-            }
-            if hasInputTap {
-                input.removeTap(onBus: 0)
-                hasInputTap = false
-            }
-            installMemoryAudioTap(on: input, request: request, format: format, levelPipe: audioLevelPipe)
-            hasInputTap = true
-            task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
-                Task { @MainActor in
-                    if let result { self?.transcript = result.bestTranscription.formattedString }
-                    if error != nil {
-                        self?.errorMessage = self?.transcript.isEmpty == true ? "Solora couldn't hear a clear reflection. You can type it instead." : nil
-                        self?.stop()
-                    }
-                }
-            }
-            engine.prepare(); try engine.start(); isRecording = true
+            transcript = ""; elapsed = 0; errorMessage = nil
+            try capture.start()
+            isRecording = true
             timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
                 Task { @MainActor in guard let self else { return }; self.elapsed += 1; if self.elapsed >= 120 { self.stop() } }
             }
@@ -424,12 +407,7 @@ private enum MemoryDraftMaker {
 
     func stop() {
         timer?.invalidate(); timer = nil
-        if hasInputTap {
-            engine.inputNode.removeTap(onBus: 0)
-            hasInputTap = false
-        }
-        if engine.isRunning { engine.stop() }
-        request?.endAudio(); task?.cancel(); request = nil; task = nil
+        capture.stop()
         isRecording = false; audioLevel = 0; try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -439,43 +417,89 @@ private enum MemoryDraftMaker {
 
 private enum VoiceCaptureError: Error { case noMicrophoneInput }
 
-/// Keeps the Audio Engine's real-time callback free of SwiftUI and actor-isolated state.
-private final class AudioLevelPipe: @unchecked Sendable {
-    static let didUpdate = Notification.Name("SoloraAudioLevelDidUpdate")
+/// Owns the Audio Engine outside SwiftUI's main actor. Its callbacks only emit
+/// value events; no UI or actor-isolated object can be reached from the audio queue.
+private final class VoiceCaptureEngine: @unchecked Sendable {
+    static let didUpdateLevel = Notification.Name("SoloraVoiceCaptureLevel")
+    static let didUpdateTranscript = Notification.Name("SoloraVoiceCaptureTranscript")
+    static let didFail = Notification.Name("SoloraVoiceCaptureFailure")
     static let levelKey = "level"
+    static let transcriptKey = "transcript"
+    static let messageKey = "message"
+
+    private let recognizer = SFSpeechRecognizer()
+    private let engine = AVAudioEngine()
+    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var task: SFSpeechRecognitionTask?
+    private var hasInputTap = false
     private var smoothedLevel: CGFloat = 0
 
-    func consume(_ buffer: AVAudioPCMBuffer) {
+    var isAvailable: Bool { recognizer?.isAvailable == true }
+
+    func start() throws {
+        try AVAudioSession.sharedInstance().setCategory(.record, mode: .measurement, options: [.duckOthers])
+        try AVAudioSession.sharedInstance().setActive(true)
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.requiresOnDeviceRecognition = true
+        self.request = request
+
+        let input = engine.inputNode
+        let format = input.inputFormat(forBus: 0)
+        guard format.sampleRate > 0, format.channelCount > 0 else { throw VoiceCaptureError.noMicrophoneInput }
+        if hasInputTap { input.removeTap(onBus: 0) }
+        input.installTap(onBus: 0, bufferSize: 1_024, format: format) { [weak self, request] buffer, _ in
+            request.append(buffer)
+            self?.publishLevel(for: buffer)
+        }
+        hasInputTap = true
+        task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
+            if let result { self?.postTranscript(result.bestTranscription.formattedString) }
+            if error != nil { self?.postFailure("Solora couldn't hear a clear reflection. You can type it instead.") }
+        }
+        engine.prepare()
+        try engine.start()
+    }
+
+    func stop() {
+        if hasInputTap { engine.inputNode.removeTap(onBus: 0); hasInputTap = false }
+        if engine.isRunning { engine.stop() }
+        request?.endAudio()
+        task?.cancel()
+        request = nil
+        task = nil
+        smoothedLevel = 0
+    }
+
+    private func publishLevel(for buffer: AVAudioPCMBuffer) {
         guard let values = buffer.floatChannelData?[0] else { return }
         let count = Int(buffer.frameLength)
         guard count > 0 else { return }
         let sum = (0..<count).reduce(CGFloat.zero) { $0 + CGFloat(values[$1] * values[$1]) }
         let raw = min(1, max(0, sqrt(sum / CGFloat(count)) * 8))
         smoothedLevel = smoothedLevel == 0 ? raw : smoothedLevel * 0.76 + raw * 0.24
-        let level = smoothedLevel
+        postLevel(smoothedLevel)
+    }
+
+    private func postLevel(_ level: CGFloat) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            NotificationCenter.default.post(
-                name: Self.didUpdate,
-                object: self,
-                userInfo: [Self.levelKey: level]
-            )
+            NotificationCenter.default.post(name: Self.didUpdateLevel, object: self, userInfo: [Self.levelKey: level])
         }
     }
-}
 
-/// This must stay outside `OnDeviceMemoryTranscriber` (which is `@MainActor`).
-/// AVAudioEngine invokes taps on its real-time queue and Swift otherwise carries
-/// the enclosing actor isolation into the callback, causing a runtime trap.
-private func installMemoryAudioTap(
-    on input: AVAudioInputNode,
-    request: SFSpeechAudioBufferRecognitionRequest,
-    format: AVAudioFormat,
-    levelPipe: AudioLevelPipe
-) {
-    input.installTap(onBus: 0, bufferSize: 1_024, format: format) { buffer, _ in
-        request.append(buffer)
-        levelPipe.consume(buffer)
+    private func postTranscript(_ transcript: String) {
+        DispatchQueue.main.async { [weak self, transcript] in
+            guard let self else { return }
+            NotificationCenter.default.post(name: Self.didUpdateTranscript, object: self, userInfo: [Self.transcriptKey: transcript])
+        }
+    }
+
+    private func postFailure(_ message: String) {
+        DispatchQueue.main.async { [weak self, message] in
+            guard let self else { return }
+            NotificationCenter.default.post(name: Self.didFail, object: self, userInfo: [Self.messageKey: message])
+        }
     }
 }
 
