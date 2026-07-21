@@ -401,11 +401,7 @@ private enum MemoryDraftMaker {
                 input.removeTap(onBus: 0)
                 hasInputTap = false
             }
-            let audioLevelPipe = audioLevelPipe
-            input.installTap(onBus: 0, bufferSize: 1_024, format: format) { buffer, _ in
-                request.append(buffer)
-                audioLevelPipe.consume(buffer)
-            }
+            installMemoryAudioTap(on: input, request: request, format: format, levelPipe: audioLevelPipe)
             hasInputTap = true
             task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
                 Task { @MainActor in
@@ -465,6 +461,21 @@ private final class AudioLevelPipe: @unchecked Sendable {
                 userInfo: [Self.levelKey: level]
             )
         }
+    }
+}
+
+/// This must stay outside `OnDeviceMemoryTranscriber` (which is `@MainActor`).
+/// AVAudioEngine invokes taps on its real-time queue and Swift otherwise carries
+/// the enclosing actor isolation into the callback, causing a runtime trap.
+private func installMemoryAudioTap(
+    on input: AVAudioInputNode,
+    request: SFSpeechAudioBufferRecognitionRequest,
+    format: AVAudioFormat,
+    levelPipe: AudioLevelPipe
+) {
+    input.installTap(onBus: 0, bufferSize: 1_024, format: format) { buffer, _ in
+        request.append(buffer)
+        levelPipe.consume(buffer)
     }
 }
 
