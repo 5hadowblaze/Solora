@@ -76,9 +76,10 @@ private struct LaunchExperience: View {
                 }
             }
         }
-        .onChange(of: authenticationSession.state) { _, state in
-            guard case .signedOut = state else { return }
-            onboardingSession.authenticationDidSignOut()
+        .onChange(of: authenticationSession.state) { previousState, state in
+            guard case .signedOut = state,
+                  case .signedIn(let user) = previousState else { return }
+            onboardingSession.authenticationDidSignOut(for: user.id)
         }
     }
 
@@ -89,17 +90,25 @@ private struct LaunchExperience: View {
 }
 
 struct OnboardingSessionState {
-    private(set) var completedUserID: String?
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     func requiresOnboarding(for userID: String) -> Bool {
-        completedUserID != userID
+        !defaults.bool(forKey: completionKey(for: userID))
     }
 
     mutating func complete(for userID: String) {
-        completedUserID = userID
+        defaults.set(true, forKey: completionKey(for: userID))
     }
 
-    mutating func authenticationDidSignOut() {
-        completedUserID = nil
+    mutating func authenticationDidSignOut(for userID: String) {
+        defaults.removeObject(forKey: completionKey(for: userID))
+    }
+
+    private func completionKey(for userID: String) -> String {
+        "solora.onboarding.completed.\(userID)"
     }
 }

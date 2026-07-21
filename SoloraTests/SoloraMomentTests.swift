@@ -2,16 +2,23 @@ import XCTest
 @testable import Solora
 
 final class SoloraMomentTests: XCTestCase {
-    func testOnboardingCompletionOnlyLastsForSignedInSession() {
+    func testOnboardingCompletionPersistsUntilTheUserSignsOut() {
         let user = AuthenticatedUser(id: "person-1", displayName: "Amir", email: nil, photoURL: nil)
-        var onboarding = OnboardingSessionState()
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        defer { defaults.removePersistentDomain(forName: #function) }
+
+        var onboarding = OnboardingSessionState(defaults: defaults)
 
         XCTAssertTrue(onboarding.requiresOnboarding(for: user.id))
 
         onboarding.complete(for: user.id)
         XCTAssertFalse(onboarding.requiresOnboarding(for: user.id))
 
-        onboarding.authenticationDidSignOut()
+        let restoredOnboarding = OnboardingSessionState(defaults: defaults)
+        XCTAssertFalse(restoredOnboarding.requiresOnboarding(for: user.id))
+
+        onboarding.authenticationDidSignOut(for: user.id)
         XCTAssertTrue(onboarding.requiresOnboarding(for: user.id))
     }
 
