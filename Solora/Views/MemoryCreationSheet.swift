@@ -365,6 +365,22 @@ private enum MemoryDraftMaker {
     private var task: SFSpeechRecognitionTask?
     private var timer: Timer?
     private var hasInputTap = false
+    private let audioLevelPipe = AudioLevelPipe()
+    private var audioLevelObservation: NSObjectProtocol?
+
+    override init() {
+        super.init()
+        audioLevelObservation = NotificationCenter.default.addObserver(
+            forName: AudioLevelPipe.didUpdate,
+            object: audioLevelPipe,
+            queue: .main
+        ) { [weak self] notification in
+            guard let level = notification.userInfo?[AudioLevelPipe.levelKey] as? CGFloat else { return }
+            Task { @MainActor [weak self] in
+                self?.audioLevel = level
+            }
+        }
+    }
 
     var elapsedLabel: String { String(format: "%d:%02d", elapsed / 60, elapsed % 60) }
 
@@ -385,10 +401,10 @@ private enum MemoryDraftMaker {
                 input.removeTap(onBus: 0)
                 hasInputTap = false
             }
-            input.installTap(onBus: 0, bufferSize: 1_024, format: format) { [weak self] buffer, _ in
+            let audioLevelPipe = audioLevelPipe
+            input.installTap(onBus: 0, bufferSize: 1_024, format: format) { buffer, _ in
                 request.append(buffer)
-                let level = Self.level(for: buffer)
-                Task { @MainActor in self?.audioLevel = self?.audioLevel == 0 ? level : ((self?.audioLevel ?? 0) * 0.76 + level * 0.24) }
+                audioLevelPipe.consume(buffer)
             }
             hasInputTap = true
             task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
@@ -421,17 +437,36 @@ private enum MemoryDraftMaker {
         isRecording = false; audioLevel = 0; try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    private static func level(for buffer: AVAudioPCMBuffer) -> CGFloat {
-        guard let values = buffer.floatChannelData?[0] else { return 0 }
-        let count = Int(buffer.frameLength); guard count > 0 else { return 0 }
-        let sum = (0..<count).reduce(CGFloat.zero) { $0 + CGFloat(values[$1] * values[$1]) }
-        return min(1, max(0, sqrt(sum / CGFloat(count)) * 8))
-    }
     private func speechAllowed() async -> Bool { switch SFSpeechRecognizer.authorizationStatus() { case .authorized: true; case .notDetermined: await withCheckedContinuation { continuation in SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0 == .authorized) } }; default: false } }
     private func microphoneAllowed() async -> Bool { switch AVAudioSession.sharedInstance().recordPermission { case .granted: true; case .undetermined: await withCheckedContinuation { continuation in AVAudioSession.sharedInstance().requestRecordPermission { continuation.resume(returning: $0) } }; default: false } }
 }
 
 private enum VoiceCaptureError: Error { case noMicrophoneInput }
+
+/// Keeps the Audio Engine's real-time callback free of SwiftUI and actor-isolated state.
+private final class AudioLevelPipe: @unchecked Sendable {
+    static let didUpdate = Notification.Name("SoloraAudioLevelDidUpdate")
+    static let levelKey = "level"
+    private var smoothedLevel: CGFloat = 0
+
+    func consume(_ buffer: AVAudioPCMBuffer) {
+        guard let values = buffer.floatChannelData?[0] else { return }
+        let count = Int(buffer.frameLength)
+        guard count > 0 else { return }
+        let sum = (0..<count).reduce(CGFloat.zero) { $0 + CGFloat(values[$1] * values[$1]) }
+        let raw = min(1, max(0, sqrt(sum / CGFloat(count)) * 8))
+        smoothedLevel = smoothedLevel == 0 ? raw : smoothedLevel * 0.76 + raw * 0.24
+        let level = smoothedLevel
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            NotificationCenter.default.post(
+                name: Self.didUpdate,
+                object: self,
+                userInfo: [Self.levelKey: level]
+            )
+        }
+    }
+}
 
 private enum LivePhotoMotionExporter {
     static func motionData(for localIdentifier: String?) async throws -> Data? {
